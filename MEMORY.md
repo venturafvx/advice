@@ -29,7 +29,13 @@ Resumo vivo do estado do projeto. Detalhe maior vai em `docs/topics/`
   `.env` real e o arquivo `VPS_SUBIR_PASSO_A_PASSO*.md` (não é deste
   projeto, tem IP/acesso do VPS) ficaram de fora de propósito — ver
   `.gitignore`.
-- **Deploy no VPS em andamento** — ver seção "VPS de produção" abaixo.
+- **EM PRODUÇÃO desde 2026-09-13**, em `https://advice.autozapx.com`
+  (HTTPS com certificado Let's Encrypt válido, Docker Swarm + Traefik no
+  VPS Monadaserver). Os três serviços (`advice_postgres`, `advice_web`,
+  `advice_worker`) rodando 1/1. Lembrete criado em produção chegou no
+  WhatsApp — fluxo completo validado no ambiente real, não só local.
+- Deploy dali em diante: `cd /var/www/advice && git pull &&
+  ./scripts/deploy-vps.sh`.
 
 ## Bugs encontrados e corrigidos rodando de verdade
 
@@ -156,10 +162,18 @@ de outro projeto silenciosamente, sem erro nenhum.
 
 ## Próximo passo natural
 
-Deploy no VPS em andamento, guiado comando a comando (sem acesso SSH
-direto desta máquina — só a deploy key do `sitevidanova` existe aqui, e
-é scoped só àquele repo). Falta: clonar o repo em `/var/www/advice`,
-criar `.env` real lá (`EVOLUTION_INSTANCE_NAME=advice`, API key global),
-buildar as duas imagens e rodar `docker stack deploy -c docker-stack.yml
-advice`. Depois, considerar `/hm-security` L1 antes de considerar o
-domínio realmente "em produção" pra valer.
+Está no ar e funcionando. O que vale considerar a seguir, em ordem:
+
+1. **`/hm-security` L1** — o app está publicamente acessível em
+   `advice.autozapx.com` **sem nenhuma autenticação**: qualquer um que
+   descobrir o domínio pode criar/cancelar lembretes que vão pro
+   WhatsApp do dono. Foi construído assumindo uso pessoal, mas agora que
+   está exposto na internet isso vira uma decisão consciente a tomar
+   (basic auth no Traefik resolveria em minutos, se for o caso).
+2. Backup do volume `advice_postgres_data` (dados sagrados — hoje não
+   tem backup nenhum configurado).
+3. Dívida técnica conhecida: atomicidade da numeração de `tentativa` em
+   `Envio` (ver acima).
+
+Não há acesso SSH ao VPS a partir da máquina de dev — deploys são
+guiados comando a comando, ou rodando `./scripts/deploy-vps.sh` no VPS.
