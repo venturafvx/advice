@@ -2,9 +2,16 @@
 # Traefik, mesmo host onde a Evolution API e outros projetos
 # (vidanovaguarus, torredeoracao) já rodam. Domínio: advice.autozapx.com.
 #
-# Rede, labels e ausência de certresolver explícito foram copiados
-# direto de /var/www/vidanovaguarus/docker-compose.yml (confirmado
-# rodando de verdade nesse VPS) — não são placeholders/achismo.
+# Rede e estilo dos labels copiados direto de
+# /var/www/vidanovaguarus/docker-compose.yml (confirmado rodando de
+# verdade nesse VPS). O `vidanovaguarus_web` NÃO tem `tls.certresolver`
+# no label — mas isso só funciona pra ele porque o certificado dele já
+# foi emitido uma vez e continua servido a partir do acme.json salvo em
+# `volume_swarm_certificates`. Pra um domínio NOVO como o nosso, o
+# certresolver "letsencryptresolver" (confirmado no comando real do
+# traefik_traefik: --certificatesresolvers.letsencryptresolver...) tem
+# que estar explícito, senão o Traefik nunca emite o certificado e cai
+# no self-signed padrão dele.
 #
 # `docker stack deploy` NÃO builda imagem nem suporta `env_file:` (só
 # `docker compose up` suporta isso) — por isso as env vars usam
@@ -85,6 +92,7 @@ services:
         - "traefik.http.routers.advice-secure.rule=Host(`advice.autozapx.com`)"
         - "traefik.http.routers.advice-secure.entrypoints=websecure"
         - "traefik.http.routers.advice-secure.tls=true"
+        - "traefik.http.routers.advice-secure.tls.certresolver=letsencryptresolver"
         - "traefik.http.services.advice.loadbalancer.server.port=3000"
 
 volumes:
