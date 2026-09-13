@@ -13,6 +13,13 @@
 # que estar explícito, senão o Traefik nunca emite o certificado e cai
 # no self-signed padrão dele.
 #
+# O banco NÃO vive mais nesta stack: é o Supabase (projeto `advice`,
+# Postgres 17 gerenciado, região ca-central-1), alcançado pela
+# `DATABASE_URL` do pooler. Por isso não há serviço `postgres` nem
+# volume aqui — backup, upgrade e alta disponibilidade do banco saíram
+# da nossa responsabilidade. A rede `advice_internal` fica só para dar
+# saída de rede ao `worker`, que não é publicado pelo Traefik.
+#
 # `docker stack deploy` NÃO builda imagem nem suporta `env_file:` (só
 # `docker compose up` suporta isso) — por isso as env vars usam
 # `${VAR}`, que o Docker resolve lendo o `.env` no mesmo diretório deste
@@ -32,23 +39,6 @@
 version: "3.8"
 
 services:
-  postgres:
-    image: postgres:17-alpine
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    volumes:
-      - advice_postgres_data:/var/lib/postgresql/data
-    networks:
-      - advice_internal
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-      # Volume local do Postgres só existe no nó onde o container roda —
-      # num Swarm de 1 nó (é o caso aqui) isso não importa.
-
   worker:
     image: advice-worker:latest
     environment:
@@ -94,10 +84,6 @@ services:
         - "traefik.http.routers.advice-secure.tls=true"
         - "traefik.http.routers.advice-secure.tls.certresolver=letsencryptresolver"
         - "traefik.http.services.advice.loadbalancer.server.port=3000"
-
-volumes:
-  advice_postgres_data:
-    name: advice_postgres_data
 
 networks:
   advice_internal:

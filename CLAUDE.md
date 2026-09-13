@@ -25,6 +25,22 @@ Decisões de stack/infra/segurança em [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 - **Destinatário fixo** via env var `WHATSAPP_DESTINO` — não é uma entidade. Confirmado com o fundador.
 - **Sem recorrência na v1** — cada Lembrete tem uma única data/hora.
+- **Banco de produção é Supabase** (projeto `advice`, ref
+  `vekbsbodosnxewatycrr`, Postgres 17, ca-central-1) — não há mais
+  serviço `postgres` no `docker-stack.yml`. Continua sendo Drizzle +
+  driver `postgres` falando SQL direto: **não** usar `supabase-js`, que
+  só faria sentido se o browser acessasse o banco. Dev local segue no
+  Postgres do Docker (`docker compose up -d postgres`) — dev nunca
+  escreve no banco de produção.
+- **Conectar sempre pelo pooler** (`...pooler.supabase.com`), nunca por
+  `db.<ref>.supabase.co`: a conexão direta só resolve em IPv6 e o VPS
+  não tem IPv6. Na porta 6543 (transaction mode) o `client.ts` desliga
+  prepared statements sozinho lendo a porta da URL.
+- **RLS ligada sem policy nenhuma** nas duas tabelas
+  (`drizzle/0001_rls_deny_postgrest.sql`). O schema `public` do Supabase
+  é exposto via PostgREST pela chave `anon`, que é pública; RLS sem
+  policy nega tudo por ali e não afeta a aplicação, que conecta como
+  owner das tabelas. Nunca criar policy "permissiva pra facilitar".
 - **Timezone fixo** `America/Sao_Paulo`, via `TZ` dos containers Docker. Não modelar timezone por usuário.
 - **CommonJS** nos packages de backend (`domain`, `application`, `infrastructure`, `worker`) — não migrar para ESM/NodeNext sem motivo concreto (ver ARCHITECTURE.md).
 - **ESLint pinado em 9.x** — ESLint 10 quebra `eslint-plugin-react` (usado por `eslint-config-next`). Reavaliar quando o plugin atualizar; não fazer bump "porque é a versão mais nova" sem testar `pnpm lint` de verdade primeiro.
@@ -59,6 +75,12 @@ API; `apps/web` e `apps/worker` só fazem composition root + entrega.
 - Sem testes de integração para os repositórios Drizzle nem para o
   `EvolutionApiNotificador` (só testes unitários do domínio puro). Vale
   adicionar quando houver um Postgres de teste disponível em CI.
+- Os dados de teste do Postgres local **foram** migrados para o Supabase
+  (9 lembretes, 19 envios), a pedido — produção não nasceu limpa. Todos
+  em status terminal (FALHOU/ENVIADO/CANCELADO), nenhum `PENDENTE`, então
+  não há nada agendado para o worker disparar. O original continua no
+  volume Docker `advice_postgres_data`, que desde então divergiu do
+  Supabase: o dev local tem registros que produção não tem.
 - Numeração de `tentativa` em `Envio` não é atômica (`contarTentativas` +
   `salvar` em dois passos) — sob dois processos do worker rodando ao
   mesmo tempo, gera `tentativa` duplicada/pulada. Mitigado em produção
