@@ -18,21 +18,17 @@ FROM deps AS builder
 WORKDIR /repo
 COPY . .
 RUN pnpm --filter "@advice/domain" --filter "@advice/application" --filter "@advice/infrastructure" --filter "@advice/worker" run build
+# `pnpm deploy` materializa um node_modules completo e autocontido pro
+# worker (incluindo as dependências dos workspace packages, resolvidas
+# de verdade — não symlinks quebrados). Copiar node_modules manualmente
+# não funciona aqui: cada pacote pnpm tem seu próprio node_modules/ com
+# os symlinks das SUAS dependências, e copiar só o da raiz os deixa de fora.
+RUN pnpm --filter "@advice/worker" deploy --prod /out/worker
 
 FROM base AS runtime
 RUN addgroup -S app && adduser -S app -G app
-WORKDIR /repo
+WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=deps /repo/node_modules ./node_modules
-COPY --from=builder /repo/package.json ./package.json
-COPY --from=builder /repo/packages/domain/dist ./packages/domain/dist
-COPY --from=builder /repo/packages/domain/package.json ./packages/domain/package.json
-COPY --from=builder /repo/packages/application/dist ./packages/application/dist
-COPY --from=builder /repo/packages/application/package.json ./packages/application/package.json
-COPY --from=builder /repo/packages/infrastructure/dist ./packages/infrastructure/dist
-COPY --from=builder /repo/packages/infrastructure/drizzle ./packages/infrastructure/drizzle
-COPY --from=builder /repo/packages/infrastructure/package.json ./packages/infrastructure/package.json
-COPY --from=builder /repo/apps/worker/dist ./apps/worker/dist
-COPY --from=builder /repo/apps/worker/package.json ./apps/worker/package.json
+COPY --from=builder /out/worker ./
 USER app
-CMD ["node", "apps/worker/dist/index.js"]
+CMD ["node", "dist/index.js"]

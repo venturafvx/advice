@@ -107,6 +107,25 @@ As que mais provavelmente geram confusão numa sessão futura:
 - `getEnv()`/`getDb()` são lazy de propósito — não é um resquício,
   quebra `next build` se voltar a ser eager.
 
+## Bugs encontrados durante o deploy real no VPS
+
+- `docker stack deploy` **não substitui `${VAR}` lendo `.env`** (ao
+  contrário de `docker compose up`) — `POSTGRES_PASSWORD` chegou vazio
+  no container, Postgres recusou subir. Fix: exportar as variáveis no
+  shell (`set -a && source .env && set +a`) antes de
+  `docker stack deploy`.
+- `apps/worker/Dockerfile` copiava só o `node_modules` da raiz —
+  faltava `apps/worker/node_modules` (symlinks pnpm das dependências
+  diretas: `dotenv`, `node-cron`) e o mesmo valeria pra
+  `packages/infrastructure` (`drizzle-orm`, `postgres`, `zod`) assim
+  que passasse do primeiro `require`. Corrigido usando `pnpm deploy
+  --prod` (materializa um `node_modules` completo e autocontido para o
+  worker, incluindo os workspace packages) em vez de copiar pastas na
+  mão. Precisou adicionar `"files": ["dist"]` (e `"drizzle"` na
+  infrastructure) nos `package.json` dos packages pra `pnpm deploy`
+  saber o que empacotar. `apps/web` nunca teve esse problema — o
+  `.next/standalone` do Next já resolve isso sozinho.
+
 ## Próximo passo natural
 
 Deploy no VPS em andamento, guiado comando a comando (sem acesso SSH
