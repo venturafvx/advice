@@ -135,6 +135,7 @@ GitHub só sabe que o pedido foi aceito, não que subiu.
 | Deploy de um commit específico | `sudo -u deploy /var/www/advice/scripts/deploy-remoto.sh <sha-40-hex>` |
 | Log do último deploy | `sudo tail -n 200 /var/log/deploy-advice.log` |
 | Webhook caiu | `sudo systemctl restart webhook-advice.service` |
+| Esqueceu/perdeu o segredo | `sudo awk -F= '/^WEBHOOK_SECRET=/{print $2}' /etc/default/webhook-advice` |
 | Mudou env var de produção | `./scripts/enviar-env-producao.sh root@167.88.42.134` + redeploy |
 | `git pull` na mão no VPS | `sudo -u deploy git -C /var/www/advice pull` (como root, o git deixa objetos root-owned e o próximo deploy quebra) |
 

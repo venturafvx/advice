@@ -83,10 +83,14 @@ if command -v ufw >/dev/null && ufw status 2>/dev/null | grep -q '^Status: activ
     | python3 -c 'import json,sys; print("\n".join(json.load(sys.stdin)["hooks"]))' 2>/dev/null || true)"
   if [ -n "$faixas" ]; then
     # Limpa regras antigas desta porta antes de recriar.
-    while ufw status numbered | grep -q "$PORTA"; do
-      n="$(ufw status numbered | grep -m1 "$PORTA" | sed 's/^\[ *\([0-9]*\).*/\1/')"
-      [ -n "$n" ] || break
-      yes | ufw delete "$n" >/dev/null
+    #
+    # `ufw --force delete`, não `yes | ufw delete`: com `set -o pipefail`
+    # o `yes` morre de SIGPIPE (141) quando o ufw fecha a entrada, e o
+    # `set -e` derrubava o instalador aqui. O bug só aparecia a partir da
+    # SEGUNDA execução, quando já existe regra para apagar — e derrubava
+    # o script depois de já ter rotacionado o segredo e antes de imprimi-lo.
+    while n="$(ufw status numbered | grep -m1 "$PORTA" | sed -n 's/^\[ *\([0-9]*\).*/\1/p')" && [ -n "$n" ]; do
+      ufw --force delete "$n" >/dev/null
     done
     while read -r faixa; do
       [ -n "$faixa" ] && ufw allow from "$faixa" to any port "$PORTA" proto tcp >/dev/null
