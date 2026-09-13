@@ -17,6 +17,7 @@ infraestrutura e decisões de segurança.
 | **`node-cron`** (polling a cada minuto) | BullMQ + Redis | Granularidade de "dia e hora" não precisa de precisão de segundo — polling de 1 min é suficiente e não exige Redis. Adicionar uma fila com broker seria complexidade sem propósito real neste volume (uso pessoal). |
 | **ESLint 9.39.5** (não 10.x) | ESLint 10 (atual) | Testado nesta máquina: ESLint 10 quebra `eslint-plugin-react` (usa `context.getFilename()`, removido no ESLint 10) — `eslint-config-next` 16.3.5 ainda depende de uma versão do plugin sem esse fix. ESLint 9 está fora de suporte oficial, mas é a única combinação que funciona hoje com o lint do Next. Reavaliar quando `eslint-config-next` atualizar. |
 | **Zod 4.5.4** (não 4.6.4, a mais recente) | Zod 4.6.4 | 4.6.4 foi publicada horas antes deste setup — o próprio pnpm bloqueou por política de idade mínima de release (proteção contra supply-chain: dá tempo da comunidade flagar uma versão comprometida antes de instalar). Pinado em 4.5.4 (~2 semanas de idade) em vez de simplesmente contornar a política. |
+| **`jose` 6.2.11** + `scrypt` do `node:crypto` para autenticação | NextAuth/Auth.js, Lucia, Supabase Auth, `argon2`/`@node-rs/argon2` | O app tem **um** operador, sem cadastro, sem OAuth, sem recuperação de senha. NextAuth traz providers, adapters e tabelas para resolver problemas que não existem aqui, e Supabase Auth acrescentaria um serviço externo no caminho crítico de um login que é local por natureza. O que de fato é preciso: derivar uma chave de senha e assinar um token. Para a segunda parte, `jose` é a implementação JOSE de referência em JS — zero dependências, auditada, roda em qualquer runtime; escrever à mão a verificação de um token assinado seria a definição de escolher a opção arriscada. Para a primeira, `scrypt` do core do Node: Argon2id é marginalmente melhor no papel, mas toda implementação em Node é módulo nativo (node-gyp/napi) — mais supply chain e risco real de build quebrado no Alpine. scrypt é memory-hard, recomendado pela OWASP e custa zero dependência. |
 | **CommonJS** nos packages de backend (não ESM/`NodeNext`) | ESM puro | Evita a exigência do Node ESM de extensão `.js` explícita em todo import relativo — fricção real sem benefício num monorepo privado que não é publicado como lib. `postgres`, `drizzle-orm` e `node-cron` têm build CJS oficial, então não há perda de compatibilidade. |
 
 Todas as versões acima foram checadas contra o registro do npm no momento
@@ -40,6 +41,11 @@ advice/
 └── docs/DOMAIN.md
 ```
 
+Dentro de `domain` há dois bounded contexts independentes —
+`lembrete/`+`envio/` (avisos por WhatsApp) e `operacao/` (compras,
+custos e margem da Venturax). Não compartilham aggregate, tabela nem
+regra; ver [`docs/DOMAIN.md`](docs/DOMAIN.md).
+
 `domain` não importa nada de `application`, `infrastructure` ou dos apps.
 `application` só conhece as interfaces (`ports`) exportadas por `domain`,
 nunca uma implementação concreta. `infrastructure` é o único lugar que
@@ -60,6 +66,52 @@ acontecer.
    status do `Lembrete`.
 4. A UI reflete o status (`PENDENTE` / `ENVIADO` / `FALHOU` / `CANCELADO`)
    na próxima vez que busca a lista.
+
+## Dinheiro, e por que não existe um `float` neste repositório
+
+Todo valor monetário do contexto de Operação é **centavo inteiro**, e
+todo percentual é **ponto-base inteiro** (15% = `1500`), do formulário
+ao banco:
+
+| Camada | Como |
+|---|---|
+| Campo do formulário | Só dígitos, entrando pela direita (como maquininha de cartão). Não existe estado intermediário inválido nem vírgula ambígua. |
+| Domínio | `Dinheiro` rejeita não-inteiro, negativo e acima do teto; `Percentual` rejeita fora de 0–100%. |
+| Cálculo | `calcularResultado()` opera em inteiros; só as *margens* são frações, e nunca voltam a virar dinheiro. |
+| Banco | `bigint` de centavos/pontos-base, com CHECK de não-negatividade. Nenhuma coluna `numeric` ou `double` de dinheiro. |
+
+`0.1 + 0.2 !== 0.3` em ponto flutuante. Num sistema cuja única razão de
+existir é dizer quanto sobra, um centavo errado se propaga para toda a
+conta — e o erro aparece meses depois, num relatório, sem rastro.
+
+### O cálculo de margem é isomórfico
+
+`calcularResultado()` vive em `packages/domain` e é uma função pura sobre
+números planos (sem classes, sem `Date`). Isso é deliberado: o **mesmo
+código** roda no servidor (ao persistir e ao listar) e no browser (o
+simulador ao vivo do formulário, via `useMemo`). O número que aparece
+enquanto o fundador digita é literalmente o que vai para o banco — não
+uma aproximação de UI que pode divergir.
+
+É também por isso que a entrada e a saída são dados planos: um resultado
+de classe não atravessa a fronteira Server Component → Client Component
+do Next sem serialização manual. Os value objects (`Dinheiro`,
+`Percentual`) continuam guardando a fronteira de *escrita* nos
+aggregates.
+
+### Integridade replicada no banco
+
+Os CHECKs de `compras`, `servicos`, `custos_*` e `categorias_custo`
+repetem invariantes que o domínio já garante. A redundância é
+intencional: o domínio protege a aplicação, o banco protege o dado de
+qualquer caminho que não passe por ela (psql, um script de importação,
+uma migration futura). Dado financeiro não tem "depois eu conserto".
+
+`categorias_custo` tem índice único sobre `lower(nome)` — "Frete" e
+"frete" como duas categorias quebrariam todo relatório por tipo de
+custo, que é a razão de a categoria ser entidade. E o FK das linhas de
+custo é `ON DELETE RESTRICT`: categoria com histórico se arquiva, nunca
+se apaga.
 
 ## Timezone
 
@@ -95,6 +147,68 @@ de multi-timezone.
   quebraria o build. Isso também evita que o worker ou o script de
   migration falhem por env vars que não usam.
 
+### Autenticação
+
+O painel inteiro é privado. A credencial é **configuração, não dado de
+aplicação**: um e-mail (`AUTH_EMAIL`) e um hash de senha
+(`AUTH_PASSWORD_HASH`), ambos em env var. Não existe tabela de usuários,
+nem cadastro, nem recuperação de senha — modelar um `Usuario` para uma
+linha só custaria migration, CRUD e superfície de ataque sem responder a
+nenhuma necessidade real. O dia em que houver um segundo operador, essa
+decisão se revisita; até lá ela é a resposta certa.
+
+- **Senha com `scrypt`** (`node:crypto`), parâmetros OWASP N=2^17, r=8,
+  p=1, sal de 16 bytes por hash. O formato guardado é
+  `scrypt$N$r$p$sal$chave`: os parâmetros viajam com o hash, então subir
+  o custo no futuro não invalida a senha configurada. Comparação com
+  `timingSafeEqual`. O e-mail é comparado em tempo constante e a senha é
+  verificada **mesmo quando o e-mail está errado** — curto-circuitar ali
+  faria o tempo de resposta revelar qual e-mail existe.
+- **Sessão em JWT HS256** assinado com `AUTH_SESSION_SECRET` (32 bytes),
+  em cookie `httpOnly` + `SameSite=Lax` + `Secure` em produção, 30 dias,
+  renovado de forma deslizante quando faltam menos de 15. `jwtVerify`
+  fixa `algorithms: ["HS256"]`, `issuer` e `audience` — é o que fecha a
+  porta da confusão de algoritmo (`alg: none`, HMAC-vs-RSA). Não há
+  revogação individual: trocar `AUTH_SESSION_SECRET` derruba todas as
+  sessões de uma vez, que é a única granularidade que um operador único
+  precisa.
+- **Duas camadas de verificação, e a de dentro basta sozinha.** O
+  `proxy.ts` (nome do antigo `middleware.ts` no Next 16) redireciona
+  para `/login` antes de renderizar, renova o cookie e barra requisição
+  mutante de origem estranha. Mas quem **autoriza** é `exigirSessao()` /
+  `sessaoAtual()` dentro de cada página e de cada handler de API — as
+  próprias docs do Next avisam que um matcher mal editado remove a
+  cobertura do proxy em silêncio. Uma trava de arquitetura
+  (`lib/auth/rotas-protegidas.test.ts`) varre o diretório de rotas e
+  falha o `pnpm test` se qualquer rota ou página nova nascer sem guarda.
+- **CSRF por verificação de `Origin`** em todo método mutante, no
+  `proxy.ts`. O cookie `SameSite=Lax` já barra POST cross-site vindo de
+  navegador, mas isso é uma propriedade do cliente; a checagem de origem
+  é a que o servidor faz por conta própria. Vale inclusive para o login,
+  senão um site terceiro poderia autenticar a vítima numa conta que ele
+  controla.
+- **Rate limit em duas faixas** (`lib/auth/limitador.ts`): 5 tentativas
+  por IP e 30 no total, a cada 15 minutos. Não é sobre adivinhação de
+  senha — é sobre CPU: cada tentativa custa ~300ms de scrypt, e sem teto
+  um laço de requisições derruba o app antes de acertar qualquer coisa.
+  Em memória, porque `web` roda com 1 réplica fixa; Redis só passa a
+  fazer sentido quando houver uma segunda, e aí o limitador não será a
+  única coisa a mudar.
+- **A senha nunca passa por linha de comando.** `pnpm auth:senha`
+  (`scripts/definir-senha.ts`) pergunta no terminal sem eco, deriva o
+  hash e escreve `.env` e `.env.production` — com um
+  `AUTH_SESSION_SECRET` **diferente em cada um**, para que o segredo do
+  laptop não assine sessão válida em `advice.autozapx.com`. Senha em
+  `argv` ficaria no histórico do shell e visível em `ps`.
+- **O hash é gravado entre aspas simples.** Ele contém `$`, e o
+  `scripts/deploy-vps.sh` faz `source .env`: sem aspas o bash expandiria
+  `$1`/`$8` como parâmetros posicionais e o login morreria em produção
+  sem nenhum erro visível. Os dois scripts de deploy recusam subir sem
+  as aspas.
+- **O `worker` não recebe nenhuma `AUTH_*`.** Ele não publica porta e
+  não atende ninguém; dar-lhe o segredo de sessão só ampliaria o raio de
+  um comprometimento.
+
 ### Nota sobre `.dockerignore` "por serviço"
 
 O padrão Higher Mind pede um `.dockerignore` no root de cada serviço.
@@ -129,6 +243,7 @@ Por isso o worker também se recusa a iniciar contra um host remoto sem
 **Dev local** (infra em Docker, código rodando nativo para hot-reload):
 ```
 cp .env.example .env   # edite EVOLUTION_API_KEY e WHATSAPP_DESTINO
+pnpm auth:senha        # define e-mail e senha de acesso ao painel
 ./scripts/setup.sh
 # Terminal 1:
 pnpm dev:web

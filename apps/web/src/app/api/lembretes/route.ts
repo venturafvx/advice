@@ -3,6 +3,7 @@ import { z } from "zod";
 import { criarLembrete, listarLembretes } from "@advice/application";
 import { DomainError } from "@advice/domain";
 import { lembreteRepository } from "@/lib/container";
+import { respostaNaoAutenticado, sessaoAtual } from "@/lib/auth/sessaoAtual";
 
 export const runtime = "nodejs";
 
@@ -12,11 +13,15 @@ const criarLembreteSchema = z.object({
 });
 
 export async function GET() {
+  if (!(await sessaoAtual())) return respostaNaoAutenticado();
+
   const lembretes = await listarLembretes({ lembreteRepository });
   return NextResponse.json({ lembretes });
 }
 
 export async function POST(request: Request) {
+  if (!(await sessaoAtual())) return respostaNaoAutenticado();
+
   const corpo = await request.json().catch(() => null);
   const resultado = criarLembreteSchema.safeParse(corpo);
 

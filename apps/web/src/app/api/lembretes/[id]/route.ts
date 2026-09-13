@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 import { cancelarLembrete, LembreteNaoEncontradoError } from "@advice/application";
 import { TransicaoInvalidaError } from "@advice/domain";
 import { lembreteRepository } from "@/lib/container";
+import { respostaNaoAutenticado, sessaoAtual } from "@/lib/auth/sessaoAtual";
 
 export const runtime = "nodejs";
 
 export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
+  if (!(await sessaoAtual())) return respostaNaoAutenticado();
+
   const { id } = await context.params;
 
   try {

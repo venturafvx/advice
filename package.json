@@ -9,6 +9,7 @@
   "scripts": {
     "dev:web": "pnpm --filter @advice/web dev",
     "dev:worker": "pnpm --filter @advice/worker dev",
+    "auth:senha": "tsx scripts/definir-senha.ts",
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
     "test": "vitest run",
@@ -18,16 +19,17 @@
     "db:migrate": "pnpm --filter @advice/infrastructure run db:migrate"
   },
   "devDependencies": {
-    "typescript": "5.9.3",
-    "vitest": "5.0.0",
+    "@eslint/js": "9.39.5",
     "@types/node": "24.13.4",
     "eslint": "9.39.5",
-    "@eslint/js": "9.39.5",
-    "typescript-eslint": "8.70.0",
     "eslint-config-next": "16.3.5",
     "eslint-config-prettier": "10.1.8",
     "globals": "17.12.0",
     "next": "16.3.5",
-    "prettier": "3.9.6"
+    "prettier": "3.9.6",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.70.0",
+    "vitest": "5.0.0"
   }
 }

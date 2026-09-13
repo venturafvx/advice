@@ -4,6 +4,48 @@ Resumo vivo do estado do projeto. Detalhe maior vai em `docs/topics/`
 (ainda não existe nenhum tópico — criar quando este arquivo passar de
 ~200 linhas).
 
+## Operação Venturax — feature nova (2026-09-13)
+
+Segundo bounded context do app, em `/operacao`. Registra compras de
+mercadoria (quantidade, custo unitário, preço de venda) com custos
+personalizáveis, e os serviços de papel de parede (valor recebido +
+custos). Calcula margem bruta, margem líquida, lucro por unidade,
+retorno sobre o custo, preço mínimo de equilíbrio e quantas unidades
+cobrem os custos fixos.
+
+- **O que foi validado**: `pnpm typecheck`, `pnpm lint`, `pnpm test`
+  (94 testes, 26 novos no domínio de Operação) e `pnpm build` — todos
+  limpos.
+- **O que NÃO foi validado**: nada rodou contra um Postgres de verdade.
+  O Docker não está disponível nesta máquina WSL (`docker` não existe no
+  distro) e a porta 5432 está fechada, então as migrations `0002`/`0003`,
+  as transações dos repositórios e o round-trip de `bigint` não foram
+  exercitados. O mapeamento `bigint({mode:"number"})` do Drizzle foi
+  conferido no código-fonte do pacote (`Number(value)`, cobre a string
+  que o postgres-js devolve para `int8`), mas isso é leitura, não teste.
+  **Próximo passo real: subir o Postgres local, rodar as migrations e
+  cadastrar uma compra de ponta a ponta antes de dar isso como pronto.**
+- **Migrations novas**: `0002_operacao_venturax.sql` (5 tabelas + índices
+  + CHECKs) e `0003_operacao_rls_e_categorias_padrao.sql` (RLS sem policy
+  nas 5 tabelas, no mesmo regime da `0001`, + seed idempotente de 7
+  categorias: Frete, Etiquetagem, Taxa Amazon 15%, Embalagem, Imposto,
+  Material, Deslocamento). Rodam no boot do worker, como as outras.
+- **Decisão de modelagem que sustenta tudo**: cada custo tem um *modo de
+  incidência* (`VALOR_FIXO` / `POR_UNIDADE` / `PERCENTUAL_DA_VENDA`).
+  É o que faz a margem sair certa e o que torna o ponto de equilíbrio
+  calculável em forma fechada.
+- **`calcularResultado()` roda no servidor e no browser** (função pura,
+  dados planos). O simulador ao vivo do formulário e o valor persistido
+  são o mesmo código — não há como divergirem.
+- **Mercadoria = receita projetada; serviço = receita realizada.** O
+  resumo separa e a UI avisa. Não somar em silêncio.
+- Dinheiro é centavo inteiro, percentual é ponto-base inteiro, do campo
+  ao `bigint` do banco. Nenhum float no caminho.
+- **Mudança fora do escopo da feature**: o `BotaoSair` saiu do cabeçalho
+  de `/` e foi para a barra de navegação global (`NavPrincipal`), que
+  aparece em toda tela autenticada — senão `/operacao` ficaria sem saída
+  e haveria dois "Sair" na tela de Lembretes.
+
 ## Estado atual (2026-09-12)
 
 - Projeto criado do zero: DDD modelado, monorepo pnpm scaffolded,

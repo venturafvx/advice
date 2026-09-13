@@ -1,4 +1,11 @@
-import { DrizzleEnvioRepository, DrizzleLembreteRepository, EvolutionApiNotificador } from "@advice/infrastructure";
+import {
+  DrizzleCategoriaDeCustoRepository,
+  DrizzleCompraRepository,
+  DrizzleEnvioRepository,
+  DrizzleLembreteRepository,
+  DrizzleServicoRepository,
+  EvolutionApiNotificador,
+} from "@advice/infrastructure";
 
 /**
  * Composition root: único lugar onde a Web app conhece as implementações
@@ -8,3 +15,7 @@ import { DrizzleEnvioRepository, DrizzleLembreteRepository, EvolutionApiNotifica
 export const lembreteRepository = new DrizzleLembreteRepository();
 export const envioRepository = new DrizzleEnvioRepository();
 export const notificador = new EvolutionApiNotificador();
+
+export const compraRepository = new DrizzleCompraRepository();
+export const servicoRepository = new DrizzleServicoRepository();
+export const categoriaRepository = new DrizzleCategoriaDeCustoRepository();

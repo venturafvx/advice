@@ -1,0 +1,42 @@
+# Unit do webhook de deploy do advice.
+# Instalada por infra/webhook/instalar.sh em /etc/systemd/system/.
+# O caminho do node é ajustado na instalação, se não for /usr/bin/node.
+
+[Unit]
+Description=Webhook de deploy do advice (GitHub -> Docker Swarm)
+Documentation=file:///var/www/advice/docs/DEPLOY.md
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Não roda como root: `deploy` está no grupo docker, que é o que ele
+# realmente precisa. O grupo docker já é equivalente a root neste host —
+# a contenção real é o serviço fazer uma coisa só.
+User=deploy
+Group=deploy
+SupplementaryGroups=docker
+WorkingDirectory=/var/www/advice-webhook
+EnvironmentFile=/etc/default/webhook-advice
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node /var/www/advice-webhook/server.js
+Restart=always
+RestartSec=5
+
+# Endurecimento. Deliberadamente moderado: o filho deste processo roda
+# `docker build` e `docker stack deploy`, e sandbox agressivo aqui vira
+# deploy quebrado às 2h da manhã por um motivo que ninguém lembra.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=webhook-advice
+
+[Install]
+WantedBy=multi-user.target

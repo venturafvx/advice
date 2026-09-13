@@ -37,6 +37,18 @@ grep -qE '^WORKER_PRIMARY=true$' .env.production || {
   echo "ERRO: falta WORKER_PRIMARY=true — o worker vai recusar iniciar." >&2
   erro=1
 }
+for var in AUTH_EMAIL AUTH_PASSWORD_HASH AUTH_SESSION_SECRET; do
+  grep -qE "^$var=.+" .env.production || {
+    echo "ERRO: falta $var em .env.production — rode \`pnpm auth:senha\`." >&2
+    erro=1
+  }
+done
+# O deploy-vps.sh dá `source .env` no VPS, e o hash scrypt tem `$`.
+grep -qE "^AUTH_PASSWORD_HASH='scrypt" .env.production || {
+  echo "ERRO: AUTH_PASSWORD_HASH precisa estar entre aspas simples." >&2
+  echo "      Sem elas o bash expande o \$1/\$8 do hash no VPS." >&2
+  erro=1
+}
 if grep -qE '^[A-Z_]+=.*(change-me|your-.*-here)' .env.production; then
   echo "ERRO: ainda há placeholder do .env.example em .env.production." >&2
   erro=1
@@ -45,6 +57,11 @@ fi
 
 echo "==> Enviando .env.production -> $DESTINO:$REMOTO/.env"
 scp -p .env.production "$DESTINO:$REMOTO/.env.novo"
-ssh "$DESTINO" "chmod 600 $REMOTO/.env.novo && mv $REMOTO/.env.novo $REMOTO/.env"
+# O deploy roda como o usuário `deploy` (ver infra/webhook/): se o .env
+# chegar aqui como root:root 600, o deploy não consegue lê-lo.
+ssh "$DESTINO" "set -e
+  chmod 600 $REMOTO/.env.novo
+  if id -u deploy >/dev/null 2>&1; then chown deploy:deploy $REMOTO/.env.novo; fi
+  mv $REMOTO/.env.novo $REMOTO/.env"
 
 echo "OK. Agora, no VPS:  cd $REMOTO && ./scripts/deploy-vps.sh"

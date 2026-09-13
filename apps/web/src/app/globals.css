@@ -13,7 +13,12 @@
   --status-enviado: #4ade80;
   --status-falhou: #f87171;
   --status-cancelado: rgba(245, 245, 247, 0.4);
+  --positivo: #34d399;
+  --negativo: #fb7185;
+  --atencao: #fbbf24;
+  --neutro-frio: #64748b;
   --radius: 12px;
+  --radius-sm: 8px;
   color-scheme: dark;
 }
 
@@ -30,7 +35,12 @@ body {
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family:
+    var(--font-inter),
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
 }
@@ -241,4 +251,1020 @@ main {
   height: 6px;
   border-radius: 999px;
   background: var(--cor-status);
+}
+
+/* ─── Autenticação ───────────────────────────────────────────────── */
+
+.cabecalho__topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.cabecalho__topo .selo {
+  margin: 0;
+}
+
+.link-discreto {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.link-discreto:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.link-discreto:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.tela-login {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  max-width: none;
+  padding: 48px 20px;
+  overflow: hidden;
+}
+
+/* Luz alta e fria de cima, na cor de acento. É o que separa uma tela
+   de login de uma caixa cinza centralizada — e some por completo em
+   qualquer coisa que não seja a tela de login. */
+.tela-login__brilho {
+  position: absolute;
+  top: -30vh;
+  left: 50%;
+  width: min(720px, 140vw);
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(242, 184, 75, 0.12), rgba(242, 184, 75, 0) 62%);
+  pointer-events: none;
+}
+
+.tela-login__conteudo {
+  position: relative;
+  width: 100%;
+  max-width: 384px;
+  animation: entrada-login 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes entrada-login {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tela-login__conteudo {
+    animation: none;
+  }
+}
+
+.tela-login__cabecalho {
+  margin-bottom: 28px;
+}
+
+.tela-login__cabecalho .selo {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin: 0 0 12px;
+}
+
+.tela-login__cabecalho h1 {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 600;
+  font-size: 40px;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  margin: 0 0 10px;
+}
+
+.tela-login__subtitulo {
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.cartao-login {
+  padding: 28px 24px 24px;
+}
+
+.cartao-login .campo:last-of-type {
+  margin-bottom: 24px;
+}
+
+.campo__rotulo-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Foco visível por teclado. Um formulário de credencial é exatamente
+   onde navegação por teclado precisa ser inequívoca. */
+.botao:focus-visible,
+.link-discreto:focus-visible,
+.campo input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* =====================================================================
+   Operação Venturax
+   Extensão do mesmo sistema visual dos Lembretes: mesma paleta, mesma
+   tipografia, mesmo raio. Nada aqui inventa um segundo design — só
+   acrescenta os padrões que uma tela financeira precisa (números
+   tabulares, faixas de margem, composição de custo).
+   ===================================================================== */
+
+/* Todo número monetário usa largura fixa de dígito. Sem isso, colunas de
+   valores "dançam" entre linhas e a leitura de uma tabela financeira
+   vira esforço. */
+.num,
+.kpi .valor,
+.resultado-valor,
+.tabela .num,
+.campo-afixo input {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* --- Navegação ------------------------------------------------------ */
+
+.barra-topo {
+  border-bottom: 1px solid var(--border);
+  background: rgba(10, 10, 11, 0.8);
+  backdrop-filter: saturate(180%) blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.barra-topo-conteudo {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 20px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.barra-topo .marca {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.barra-topo nav {
+  display: flex;
+  gap: 20px;
+}
+
+.barra-topo nav a {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.barra-topo nav a:hover {
+  color: var(--text-secondary);
+}
+
+.barra-topo nav a.ativo {
+  color: var(--text);
+}
+
+main.amplo {
+  max-width: 1100px;
+}
+
+.cabecalho-com-acoes {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.acoes-cabecalho {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.cabecalho .selo a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.cabecalho .selo a:hover {
+  color: var(--text-secondary);
+}
+
+/* --- Botões adicionais ---------------------------------------------- */
+
+.botao-primario.compacto {
+  width: auto;
+}
+
+a.botao {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.botao-perigo {
+  background: transparent;
+  border: 1px solid rgba(251, 113, 133, 0.32);
+  color: var(--negativo);
+  padding: 10px 16px;
+}
+
+.botao-perigo:hover:not(:disabled) {
+  background: rgba(251, 113, 133, 0.08);
+  border-color: var(--negativo);
+}
+
+.botao-fantasma {
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.botao-fantasma:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--text-tertiary);
+}
+
+.botao-icone {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  width: 34px;
+  height: 34px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.botao-icone:hover {
+  color: var(--negativo);
+  border-color: rgba(251, 113, 133, 0.4);
+}
+
+.link-sutil {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 4px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--border-strong);
+}
+
+.link-sutil:hover {
+  color: var(--text-secondary);
+}
+
+.rodape-sutil {
+  margin-top: 48px;
+  font-size: 13px;
+}
+
+.rodape-sutil a {
+  color: var(--text-tertiary);
+  text-underline-offset: 3px;
+}
+
+.rodape-sutil a:hover {
+  color: var(--text-secondary);
+}
+
+/* --- Campos ---------------------------------------------------------- */
+
+.campo select,
+.campo textarea,
+select {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  padding: 10px 12px;
+  outline: none;
+  min-width: 0;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+select:focus {
+  border-color: var(--border-strong);
+  background: #1e1e22;
+}
+
+.campo textarea {
+  resize: vertical;
+}
+
+.campo-observacao {
+  margin-top: 20px;
+}
+
+input[type="number"] {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+input[type="number"]:focus {
+  border-color: var(--border-strong);
+}
+
+.alinhado-direita {
+  text-align: right;
+}
+
+/* Campo com "R$" / "%" grudado na borda — o afixo é do container, não
+   do input, para que o texto digitado nunca deslize por baixo dele. */
+.campo-afixo {
+  display: flex;
+  align-items: center;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0 12px;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.campo-afixo:focus-within {
+  border-color: var(--border-strong);
+  background: #1e1e22;
+}
+
+.campo-afixo .afixo {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.campo-afixo input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  padding: 10px 0 10px 8px;
+}
+
+.campo-afixo.afixo-sufixo input {
+  padding: 10px 8px 10px 0;
+}
+
+/* --- Editor: formulário + resultado ao vivo -------------------------- */
+
+.editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 20px;
+  align-items: start;
+}
+
+.editor .coluna-resultado {
+  position: sticky;
+  top: 76px;
+}
+
+@media (max-width: 920px) {
+  .editor {
+    grid-template-columns: 1fr;
+  }
+
+  .editor .coluna-resultado {
+    position: static;
+  }
+}
+
+.acoes-editor {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.acoes-editor .botao-primario {
+  width: auto;
+  flex: 1;
+  min-width: 180px;
+  justify-content: center;
+}
+
+/* --- Bloco de custos ------------------------------------------------- */
+
+.bloco-custos {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.bloco-custos-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.rotulo-secao {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.dica {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+  margin: 0 0 12px;
+}
+
+.linha-custo,
+.nova-categoria {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 128px 34px;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.nova-categoria input {
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  padding: 10px 12px;
+  outline: none;
+  min-width: 0;
+}
+
+.nova-categoria .botao-secundario {
+  padding: 10px 12px;
+}
+
+@media (max-width: 560px) {
+  .linha-custo,
+  .nova-categoria {
+    grid-template-columns: minmax(0, 1fr) 110px 34px;
+  }
+
+  .linha-custo select:first-child,
+  .nova-categoria input {
+    grid-column: 1 / -1;
+  }
+}
+
+/* --- Painel de resultado --------------------------------------------- */
+
+.painel-resultado {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+}
+
+.resultado-destaque {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.resultado-valor {
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.resultado-valor.positivo {
+  color: var(--text);
+}
+
+.resultado-valor.negativo,
+.num.negativo,
+.valor.negativo {
+  color: var(--negativo);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.chip.bom {
+  background: rgba(52, 211, 153, 0.12);
+  color: var(--positivo);
+}
+
+.chip.medio {
+  background: rgba(251, 191, 36, 0.12);
+  color: var(--atencao);
+}
+
+.chip.ruim {
+  background: rgba(251, 113, 133, 0.12);
+  color: var(--negativo);
+}
+
+.chip.neutro {
+  background: rgba(245, 245, 247, 0.06);
+  color: var(--text-tertiary);
+}
+
+.tom-bom {
+  color: var(--positivo);
+}
+
+.tom-medio {
+  color: var(--atencao);
+}
+
+.tom-ruim {
+  color: var(--negativo);
+}
+
+.composicao {
+  display: flex;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--bg-input);
+  margin-bottom: 18px;
+}
+
+.composicao > span {
+  display: block;
+  height: 100%;
+  /* As larguras já somam 100% por construção; sem isto o flex
+     encolheria as fatias e a proporção deixaria de ser verdade. */
+  flex-shrink: 0;
+}
+
+.composicao .faixa-mercadoria {
+  background: var(--neutro-frio);
+}
+
+.composicao .faixa-custos {
+  background: var(--accent);
+}
+
+.composicao .faixa-lucro {
+  background: var(--positivo);
+}
+
+.composicao .faixa-prejuizo {
+  background: var(--negativo);
+}
+
+.resultado-linhas {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.resultado-linha {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 14px;
+}
+
+.resultado-linha dt {
+  color: var(--text-secondary);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.resultado-linha dd {
+  margin: 0;
+  flex-shrink: 0;
+  color: var(--text);
+}
+
+.resultado-linha.forte dt,
+.resultado-linha.forte dd {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.resultado-linha.sutil dt,
+.resultado-linha.sutil dd {
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+.resultado-linha .nota {
+  margin-left: 7px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.02em;
+}
+
+.resultado-separador {
+  height: 1px;
+  background: var(--border);
+  margin: 3px 0;
+}
+
+.resultado-indicadores {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 20px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.indicador {
+  background: var(--bg-elevated);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.indicador .rotulo {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.02em;
+}
+
+.indicador .valor {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* --- Painel consolidado ---------------------------------------------- */
+
+.filtro-periodo {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  margin-bottom: 20px;
+}
+
+.filtro-periodo a {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.filtro-periodo a:hover {
+  color: var(--text-secondary);
+}
+
+.filtro-periodo a.ativo {
+  background: var(--bg-input);
+  color: var(--text);
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.kpi {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kpi .rotulo {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.kpi .valor {
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.aviso-projecao {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+  margin: 16px 0 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--border-strong);
+}
+
+.aviso-projecao strong {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.duas-colunas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.duas-colunas .cartao + .cartao {
+  margin-top: 0;
+}
+
+.bloco-linha-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.bloco-linha-cabecalho h2 {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.selo-discreto {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 8px;
+}
+
+.resultado-linhas.compacto {
+  gap: 7px;
+}
+
+.bloco-linha-rodape {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.sublinha {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.secao-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.secao-cabecalho .secao-titulo {
+  margin-bottom: 12px;
+}
+
+.barra-categoria + .barra-categoria {
+  margin-top: 14px;
+}
+
+.barra-categoria-topo {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.barra-categoria .trilho {
+  height: 5px;
+  background: var(--bg-input);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.barra-categoria .trilho > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+/* --- Tabelas --------------------------------------------------------- */
+
+.rolagem-horizontal {
+  overflow-x: auto;
+  margin: -4px -4px -8px;
+  padding: 4px 4px 8px;
+}
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 560px;
+}
+
+.tabela th {
+  text-align: left;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  padding: 0 0 12px;
+  white-space: nowrap;
+}
+
+.tabela th + th,
+.tabela td + td {
+  padding-left: 18px;
+}
+
+.tabela td {
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.tabela .num {
+  text-align: right;
+}
+
+.tabela .celula-principal {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-decoration: none;
+  color: inherit;
+  white-space: normal;
+  min-width: 180px;
+}
+
+.tabela .celula-principal .titulo {
+  font-weight: 500;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.tabela .celula-principal:hover .titulo {
+  color: var(--accent);
+}
+
+.tabela tbody tr:hover {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.barra-topo-fim {
+  margin-left: auto;
+}
+
+.edicao-categoria {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 128px;
+  gap: 8px;
+  align-items: center;
+  flex: 1;
+}
+
+.edicao-categoria input {
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  padding: 10px 12px;
+  outline: none;
+  min-width: 0;
+}
+
+.item-lembrete.editando {
+  align-items: center;
+}
+
+@media (max-width: 560px) {
+  .edicao-categoria {
+    grid-template-columns: minmax(0, 1fr) 110px;
+  }
+
+  .edicao-categoria input {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Campos com afixo ("R$", "%"): quem desenha a caixa é o `.campo-afixo`,
+   não o `input` de dentro. Sem isto, a regra global de foco por teclado
+   desenha o anel em volta do input e ele passa por cima do prefixo. */
+.campo .campo-afixo input:focus-visible {
+  outline: none;
+}
+
+.campo .campo-afixo:focus-within,
+.linha-custo .campo-afixo:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Os selects de custo também precisam de foco inequívoco por teclado —
+   a regra global só cobria `.campo input`. */
+.campo select:focus-visible,
+.linha-custo select:focus-visible,
+.nova-categoria select:focus-visible,
+.nova-categoria input:focus-visible,
+.edicao-categoria input:focus-visible,
+.campo textarea:focus-visible,
+.botao-icone:focus-visible,
+.link-sutil:focus-visible,
+.filtro-periodo a:focus-visible,
+.barra-topo nav a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }

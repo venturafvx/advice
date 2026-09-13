@@ -25,22 +25,24 @@
 # `${VAR}`, que o Docker resolve lendo o `.env` no mesmo diretório deste
 # arquivo no momento do `docker stack deploy`.
 #
-# Deploy:
-#   cd /var/www/advice
-#   docker build -f apps/web/Dockerfile    -t advice-web:latest    .
-#   docker build -f apps/worker/Dockerfile -t advice-worker:latest .
-#   docker stack deploy -c docker-stack.yml advice
+# As imagens são buildadas no próprio VPS e existem SÓ nele — por isso
+# o deploy usa `--resolve-image never` (senão o Swarm tentaria resolver
+# `advice-web:<tag>` num registry e falharia). `ADVICE_TAG` diz qual
+# versão sobe: o deploy tagueia cada build com o SHA curto do commit e
+# guarda as últimas 6, então rollback é subir a tag anterior sem rebuild.
 #
-# Redeploy depois de um `git pull` + rebuild de imagem (a tag ":latest"
-# não muda, então precisa forçar o Swarm a recriar o container):
-#   docker service update --force advice_web
-#   docker service update --force advice_worker
+# Deploy (normal): automático — push na main dispara o webhook do VPS.
+# Ver docs/DEPLOY.md. Manual, de dentro do VPS:
+#   cd /var/www/advice && ./scripts/deploy-remoto.sh <sha-completo>
+#
+# Rollback para uma imagem que já está no disco do VPS:
+#   cd /var/www/advice && ADVICE_TAG=<sha-curto> ./scripts/deploy-vps.sh
 
 version: "3.8"
 
 services:
   worker:
-    image: advice-worker:latest
+    image: advice-worker:${ADVICE_TAG:-latest}
     environment:
       DATABASE_URL: ${DATABASE_URL}
       EVOLUTION_API_BASE_URL: ${EVOLUTION_API_BASE_URL}
@@ -63,13 +65,24 @@ services:
         condition: on-failure
 
   web:
-    image: advice-web:latest
+    image: advice-web:${ADVICE_TAG:-latest}
     environment:
       DATABASE_URL: ${DATABASE_URL}
       EVOLUTION_API_BASE_URL: ${EVOLUTION_API_BASE_URL}
       EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
       EVOLUTION_INSTANCE_NAME: ${EVOLUTION_INSTANCE_NAME}
       WHATSAPP_DESTINO: ${WHATSAPP_DESTINO}
+      # Credencial de acesso. Só o `web` recebe: o worker não tem porta
+      # publicada e não atende ninguém — dar o segredo de sessão a ele
+      # seria ampliar o raio de um comprometimento de graça.
+      #
+      # O hash contém `$`, e o deploy-vps.sh faz `source .env` antes do
+      # `docker stack deploy`. Por isso o valor no .env é escrito entre
+      # aspas simples por `pnpm auth:senha` — sem elas o bash expandiria
+      # `$1`/`$8` e o hash chegaria mutilado aqui.
+      AUTH_EMAIL: ${AUTH_EMAIL}
+      AUTH_PASSWORD_HASH: ${AUTH_PASSWORD_HASH}
+      AUTH_SESSION_SECRET: ${AUTH_SESSION_SECRET}
       TZ: America/Sao_Paulo
     networks:
       - advice_internal

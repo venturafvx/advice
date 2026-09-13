@@ -17,3 +17,13 @@ coverage
 # não faz parte do "advice", contém IP/acesso do VPS. Nunca subir.
 VPS_SUBIR_PASSO_A_PASSO*.md
 VPS_SUBIR_PASSO_A_PASSO*.md:Zone.Identifier
+
+# Skills de agente instaladas via `skills add` — conteúdo de terceiro,
+# reinstalável a partir do skills-lock.json (que este sim é versionado),
+# na mesma lógica de node_modules x lockfile.
+.agents/
+
+# Runbook do torredeoracao que serviu de referência para o webhook daqui.
+# Mesma razão do VPS_SUBIR_PASSO_A_PASSO: é de outro projeto e contém
+# acesso ao VPS. O deploy do advice está documentado em docs/DEPLOY.md.
+DEPLOY_AUTOMATICO_WEBHOOK.md

@@ -1,0 +1,14 @@
+# Instalado em /etc/logrotate.d/advice-deploy por infra/webhook/instalar.sh.
+# Sem isto, /var/log/deploy-advice.log cresce para sempre — cada deploy
+# escreve o output inteiro de dois `docker build`.
+/var/log/deploy-advice.log {
+    weekly
+    rotate 8
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    su deploy deploy
+    create 0640 deploy deploy
+}

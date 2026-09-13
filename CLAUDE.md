@@ -11,6 +11,14 @@ API (instância "advice", já self-hosted em `evolution.autozapx.com`,
 autenticação via API key global).
 Uso pessoal — um único destinatário fixo, sem multi-tenant.
 
+Desde 2026-09-13 o app tem um **segundo contexto, Operação Venturax**
+(`/operacao`): registrar compras de mercadoria com custos personalizáveis
+(frete, etiquetagem, taxa Amazon, o que o fundador criar), quantidade e
+preço de venda, e ver margem bruta, líquida, retorno sobre o custo e
+ponto de equilíbrio. Também registra os serviços de papel de parede
+(valor recebido e custos). Nada a ver com Lembretes além de dividir o
+mesmo app.
+
 Modelagem de domínio completa em [`docs/DOMAIN.md`](docs/DOMAIN.md).
 Decisões de stack/infra/segurança em [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
@@ -20,6 +28,14 @@ Decisões de stack/infra/segurança em [`ARCHITECTURE.md`](ARCHITECTURE.md).
 - **Envio**: uma tentativa de entrega via WhatsApp (sucesso ou falha). Aggregate próprio.
 - **Notificador**: porta de saída para "enviar WhatsApp" — nunca conhece Evolution API diretamente.
 - Status do Lembrete: `PENDENTE` (único não-terminal) → `ENVIADO` | `FALHOU` | `CANCELADO`.
+
+Contexto de Operação (ver `docs/DOMAIN.md` para o modelo completo):
+
+- **Compra**: um lote de mercadoria comprado para revenda. Aggregate root.
+- **Serviço**: um trabalho prestado e recebido (papel de parede). Aggregate root.
+- **CustoOperacional**: linha de custo dentro de uma Compra/Serviço. Value object.
+- **CategoriaDeCusto**: tipo de custo reutilizável e criável pelo fundador. Aggregate root.
+- **Modo de incidência**: `VALOR_FIXO` | `POR_UNIDADE` | `PERCENTUAL_DA_VENDA`.
 
 ## Decisões cravadas (não revisitar sem motivo novo)
 
@@ -52,7 +68,44 @@ Decisões de stack/infra/segurança em [`ARCHITECTURE.md`](ARCHITECTURE.md).
   imagem nem suporta `depends_on: condition:`, por isso os arquivos são
   diferentes e as migrations rodam no boot do `worker`, não num serviço
   `migrate` separado.
+- **Deploy é automático no push da `main`, via webhook no VPS**
+  (`infra/webhook/`, porta 9001, systemd `webhook-advice.service`) — o
+  mesmo padrão do `torredeoracao`, que já roda na 9000 nesse host. O
+  GitHub assina o POST (HMAC-SHA256, segredo em
+  `/etc/default/webhook-advice`), o webhook valida assinatura/evento/
+  branch/SHA e chama `scripts/deploy-remoto.sh <sha>` → `deploy-vps.sh`,
+  que builda no VPS, tagueia a imagem com o SHA curto, sobe a stack,
+  espera convergir e faz `docker service rollback` se não convergir.
+  Rollback manual é `ADVICE_TAG=<sha-curto> ./scripts/deploy-vps.sh` —
+  as 6 últimas imagens ficam no disco. Passo a passo em
+  [`docs/DEPLOY.md`](docs/DEPLOY.md). Descartado: GitHub Actions + GHCR +
+  SSH — mais peças e um segundo jeito de deployar no mesmo servidor.
+  O `.github/workflows/ci.yml` roda só o baseline, não deploya; o portão
+  real do deploy é o `docker build` falhar.
+  O `.env` de produção continua fora disso, indo direto de dev pro VPS.
 - **`getEnv()` / `getDb()` são lazy** (`packages/infrastructure/src/config/env.ts`, `.../db/client.ts`) — nunca voltar a validar env ou abrir conexão no import do módulo; isso quebra o `next build` (que avalia o grafo de módulos das rotas em build-time, sem as env vars de runtime disponíveis).
+
+### Operação Venturax
+
+- **Dinheiro é centavo inteiro (`bigint`), percentual é ponto-base
+  inteiro** — do campo do formulário ao banco. Nenhum `float`, nenhuma
+  coluna `numeric` de dinheiro, em lugar nenhum. Ver ARCHITECTURE.md.
+- **`calcularResultado()` é a única fonte da margem** e roda nos dois
+  lados (servidor e browser). Nunca reimplementar a conta em SQL, na UI
+  ou num relatório — o número tem de ser sempre o mesmo.
+- **Modo de incidência do custo não é enfeite**: frete é fixo,
+  etiquetagem é por unidade, taxa da Amazon é percentual da venda.
+  Colapsar os três em "um valor" dá margem errada.
+- **Mercadoria é receita projetada, serviço é receita realizada.** O
+  resumo separa os dois e a UI diz isso em voz alta. Não somar em
+  silêncio.
+- **CategoriaDeCusto nunca é excluída, só arquivada** (FK `ON DELETE
+  RESTRICT`) — histórico financeiro não pode perder o rótulo do gasto.
+- **Custo `POR_UNIDADE` não existe em Serviço** — invariante do
+  aggregate e CHECK no banco.
+- **Toda rota e toda página novas exigem sessão explicitamente**
+  (`sessaoAtual()` / `exigirSessao()`). O `proxy.ts` é a segunda camada,
+  não a autorização. `rotas-protegidas.test.ts` quebra se esquecer.
 
 ## Baseline obrigatório antes de qualquer commit
 

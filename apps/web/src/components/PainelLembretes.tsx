@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import type { LembreteResumo } from "@advice/application";
 import { StatusLembrete } from "@advice/domain";
@@ -25,6 +26,7 @@ function formatarQuando(iso: string): string {
 }
 
 export function PainelLembretes({ lembretesIniciais }: { lembretesIniciais: LembreteResumoSerializado[] }) {
+  const router = useRouter();
   const [lembretes, setLembretes] = useState(lembretesIniciais);
   const [titulo, setTitulo] = useState("");
   const [dia, setDia] = useState("");
@@ -32,8 +34,22 @@ export function PainelLembretes({ lembretesIniciais }: { lembretesIniciais: Lemb
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
+  /**
+   * A sessão pode vencer com a aba aberta. Sem isto, a próxima ação
+   * falharia em silêncio (ou tentaria ler HTML como JSON) em vez de
+   * levar de volta para o login.
+   */
+  function sessaoAcabou(resposta: Response): boolean {
+    if (resposta.status !== 401) return false;
+    router.replace("/login");
+    router.refresh();
+    return true;
+  }
+
   async function recarregar(): Promise<void> {
     const resposta = await fetch("/api/lembretes", { cache: "no-store" });
+    if (sessaoAcabou(resposta)) return;
+
     const dados = (await resposta.json()) as { lembretes: LembreteResumoSerializado[] };
     setLembretes(dados.lembretes);
   }
@@ -55,6 +71,8 @@ export function PainelLembretes({ lembretesIniciais }: { lembretesIniciais: Lemb
         body: JSON.stringify({ titulo, agendadoPara: `${dia}T${hora}` }),
       });
 
+      if (sessaoAcabou(resposta)) return;
+
       const dados = (await resposta.json()) as { erro?: string };
       if (!resposta.ok) {
         setErro(dados.erro ?? "Não foi possível criar o lembrete");
@@ -73,6 +91,7 @@ export function PainelLembretes({ lembretesIniciais }: { lembretesIniciais: Lemb
   async function cancelar(id: string): Promise<void> {
     setLembretes((atual) => atual.map((l) => (l.id === id ? { ...l, status: StatusLembrete.CANCELADO } : l)));
     const resposta = await fetch(`/api/lembretes/${id}`, { method: "DELETE" });
+    if (sessaoAcabou(resposta)) return;
     if (!resposta.ok) {
       await recarregar();
     }
