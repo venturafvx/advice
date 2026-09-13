@@ -16,15 +16,18 @@ cobrem os custos fixos.
 - **O que foi validado**: `pnpm typecheck`, `pnpm lint`, `pnpm test`
   (94 testes, 26 novos no domínio de Operação) e `pnpm build` — todos
   limpos.
-- **O que NÃO foi validado**: nada rodou contra um Postgres de verdade.
-  O Docker não está disponível nesta máquina WSL (`docker` não existe no
-  distro) e a porta 5432 está fechada, então as migrations `0002`/`0003`,
-  as transações dos repositórios e o round-trip de `bigint` não foram
-  exercitados. O mapeamento `bigint({mode:"number"})` do Drizzle foi
-  conferido no código-fonte do pacote (`Number(value)`, cobre a string
-  que o postgres-js devolve para `int8`), mas isso é leitura, não teste.
-  **Próximo passo real: subir o Postgres local, rodar as migrations e
-  cadastrar uma compra de ponta a ponta antes de dar isso como pronto.**
+- **Migrations já rodaram para valer** (2026-09-13, depois da nota
+  abaixo): aplicadas no Postgres local e no Supabase de produção. As 7
+  tabelas existem nos dois, com RLS ligada e **zero policy** em todas —
+  conferido por `pg_policy` no Supabase, não presumido. As 7 categorias
+  do seed entraram. `lembretes` e `envios` ficaram intocadas.
+- **O que CONTINUA sem validação de verdade**: nenhuma compra foi
+  cadastrada de ponta a ponta ainda. O round-trip de `bigint` pelo
+  Drizzle (`bigint({mode:"number"})` → `Number(value)` sobre o `int8`
+  que o postgres-js devolve como string) foi conferido lendo o
+  código-fonte do pacote, não exercitado. **Próximo passo real:
+  cadastrar uma compra com os três modos de incidência e conferir que a
+  margem persistida bate com a do simulador.**
 - **Migrations novas**: `0002_operacao_venturax.sql` (5 tabelas + índices
   + CHECKs) e `0003_operacao_rls_e_categorias_padrao.sql` (RLS sem policy
   nas 5 tabelas, no mesmo regime da `0001`, + seed idempotente de 7
@@ -45,6 +48,57 @@ cobrem os custos fixos.
   de `/` e foi para a barra de navegação global (`NavPrincipal`), que
   aparece em toda tela autenticada — senão `/operacao` ficaria sem saída
   e haveria dois "Sair" na tela de Lembretes.
+
+## Deploy automático no ar — e a lição das portas (2026-09-13)
+
+`advice.autozapx.com` roda o commit `52794e7`, com login, Operação
+Venturax e Lembretes. Imagens tagueadas por SHA (`advice-web:52794e7b5de2`),
+banco no Supabase, webhook de deploy instalado e testado ponta a ponta:
+POST assinado → `202` → build → `docker stack deploy` → convergência
+verificada → `OK em 172s`.
+
+**O webhook do advice escuta na 9003, não na 9001.** O `docs/DEPLOY.md`
+nasceu com a premissa de que "a 9000 é do torredeoracao, logo a 9001
+está livre". Não estava: `webhook-vidanovaguarus.service` ocupa a 9001
+desde julho/2026, e a 9002 também tem dono. O mapa real de portas em
+escuta neste VPS é `22 80 443 2022 2377 7946 8000 8005 8006 9000 9001
+9002 9010 9011 27017 43365`.
+
+O erro custou quatro instalações fracassadas porque **três defeitos o
+esconderam**, todos corrigidos em `52794e7`:
+
+1. O health check do instalador era `curl -fsS /health` — aceitava
+   qualquer `200`, e quem respondia era o webhook vizinho na mesma
+   porta, com um `Webhook server OK` em texto puro. Agora exige
+   `systemctl is-active` **e** que a resposta seja o JSON do advice.
+2. Não havia checagem de porta. Agora o instalador recusa instalar
+   sobre porta ocupada e diz quem a ocupa.
+3. `/etc/default/webhook-advice` só era escrito na criação ou com
+   `--rotar-segredo`. Trocar a porta no instalador não mudava nada — o
+   serviço seguia lendo o `DEPLOY_PORT` velho. Agora o segredo é
+   preservado e todo o resto é reescrito.
+
+**A lição que vale além deste bug**: porta livre se confere com
+`ss -ltnp`, não se deduz do vizinho que você conhece. E health check
+que aceita qualquer `200` não é health check — tem que provar que quem
+respondeu é o seu processo.
+
+Bug irmão, mesmo commit anterior (`219918e`): `yes | ufw delete "$n"`
+sob `set -o pipefail` derrubava o instalador na **segunda** execução em
+diante (SIGPIPE = 141 no `yes`), depois de já ter rotacionado o segredo
+e antes de imprimi-lo. Script idempotente precisa ser testado rodando
+duas vezes, não uma.
+
+### Pendências operacionais (não são bugs)
+
+- **`advice_postgres` continua no Swarm**, órfão do tempo pré-Supabase;
+  `deploy-vps.sh` roda sem `--prune`, então ele sobrevive aos deploys.
+  `docker service rm advice_postgres` tira o serviço sem tocar no
+  volume `advice_postgres_data`.
+- **Regras de ufw órfãs na 9001**: o instalador chegou a liberar as 6
+  faixas do GitHub naquela porta, que é do vidanovaguarus. Só o GitHub
+  alcança e aquilo também é webhook do GitHub, mas foi mudança na
+  exposição de um app que não é nosso.
 
 ## Estado atual (2026-09-12)
 
