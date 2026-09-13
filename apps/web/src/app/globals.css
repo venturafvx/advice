@@ -1,0 +1,244 @@
+:root {
+  --bg: #0a0a0b;
+  --bg-elevated: #131316;
+  --bg-input: #1a1a1e;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text: #f5f5f7;
+  --text-secondary: rgba(245, 245, 247, 0.58);
+  --text-tertiary: rgba(245, 245, 247, 0.36);
+  --accent: #f2b84b;
+  --accent-text: #1a1305;
+  --status-pendente: #f2b84b;
+  --status-enviado: #4ade80;
+  --status-falhou: #f87171;
+  --status-cancelado: rgba(245, 245, 247, 0.4);
+  --radius: 12px;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 64px 20px 96px;
+}
+
+.cabecalho {
+  margin-bottom: 40px;
+}
+
+.cabecalho .selo {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin: 0 0 10px;
+}
+
+.cabecalho h1 {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 600;
+  font-size: 34px;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  margin: 0 0 8px;
+}
+
+.cabecalho p {
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.cartao {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.cartao + .cartao {
+  margin-top: 16px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.campo label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.campo input,
+.campo textarea {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  padding: 10px 12px;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.campo input:focus,
+.campo textarea:focus {
+  border-color: var(--border-strong);
+  background: #1e1e22;
+}
+
+.linha {
+  display: flex;
+  gap: 12px;
+}
+
+.linha .campo {
+  flex: 1;
+  min-width: 0;
+}
+
+.botao {
+  appearance: none;
+  border: none;
+  border-radius: 8px;
+  padding: 11px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    opacity 0.15s ease,
+    transform 0.1s ease;
+}
+
+.botao:active {
+  transform: scale(0.98);
+}
+
+.botao:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.botao-primario {
+  background: var(--accent);
+  color: var(--accent-text);
+  width: 100%;
+}
+
+.botao-primario:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.botao-secundario {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.botao-secundario:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--text-secondary);
+}
+
+.erro {
+  color: var(--status-falhou);
+  font-size: 13px;
+  margin: -4px 0 16px;
+}
+
+.secao-titulo {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin: 40px 0 12px;
+}
+
+.lista-vazia {
+  color: var(--text-tertiary);
+  font-size: 14px;
+  padding: 20px 0;
+}
+
+.item-lembrete {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.item-lembrete:last-child {
+  border-bottom: none;
+}
+
+.item-lembrete .conteudo {
+  min-width: 0;
+}
+
+.item-lembrete .titulo {
+  font-size: 15px;
+  font-weight: 500;
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}
+
+.item-lembrete .quando {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.item-lembrete .acoes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.selo-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.selo-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--cor-status);
+}

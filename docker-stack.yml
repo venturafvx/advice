@@ -1,0 +1,89 @@
+# Stack para o VPS real (167.88.42.134), que já roda vidanovaguarus e
+# torredeoracao em Docker Swarm com Traefik fazendo o roteamento por
+# domínio (SNI) — ver VPS_SUBIR_PASSO_A_PASSO 1 1.md. Domínio deste
+# projeto: advice.autozapx.com.
+#
+# `docker stack deploy` NÃO builda imagens (diferente de `docker compose
+# up`) — siga o mesmo padrão já usado pelos outros projetos nesse VPS:
+#
+#   cd /var/www/advice
+#   docker build -f apps/web/Dockerfile    -t advice-web:latest    .
+#   docker build -f apps/worker/Dockerfile -t advice-worker:latest .
+#   docker stack deploy -c docker-stack.yml advice
+#   docker service update --force advice_web
+#   docker service update --force advice_worker
+#
+# ANTES do primeiro deploy, confirme e ajuste:
+#   1. O nome da rede externa do Traefik (abaixo está "traefik-public" —
+#      confira com `docker network ls | grep -i traefik` no VPS e ajuste
+#      se o nome real for outro, ex: o mesmo que vidanovaguarus/
+#      torredeoracao usam pra serem alcançados pelo Traefik).
+#   2. O nome do entrypoint HTTPS e do certresolver do Traefik (abaixo
+#      "websecure" / "le" são os nomes mais comuns, mas dependem de como
+#      o traefik.yml desse VPS foi configurado).
+#   3. Preencha as variáveis de `.env` de verdade antes do deploy —
+#      nenhuma delas tem default aqui de propósito.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - advice_postgres_data:/var/lib/postgresql/data
+    networks:
+      - advice_internal
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      # Volume local do Postgres só existe no nó onde o container roda —
+      # num Swarm de 1 nó isso não importa; se o VPS crescer pra multi-nó,
+      # trocar por um placement constraint fixando o nó, ou por um volume
+      # de rede.
+
+  worker:
+    image: advice-worker:latest
+    env_file: .env
+    environment:
+      TZ: America/Sao_Paulo
+    networks:
+      - advice_internal
+    deploy:
+      replicas: 1 # NUNCA mais que 1 — o worker aplica migrations no boot
+        # e roda o scheduler; múltiplas réplicas disparariam o mesmo
+        # lembrete várias vezes.
+      restart_policy:
+        condition: on-failure
+
+  web:
+    image: advice-web:latest
+    env_file: .env
+    environment:
+      TZ: America/Sao_Paulo
+    networks:
+      - advice_internal
+      - traefik-public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=traefik-public
+        - traefik.http.routers.advice.rule=Host(`advice.autozapx.com`)
+        - traefik.http.routers.advice.entrypoints=websecure
+        - traefik.http.routers.advice.tls.certresolver=le
+        - traefik.http.services.advice.loadbalancer.server.port=3000
+
+volumes:
+  advice_postgres_data:
+    name: advice_postgres_data
+
+networks:
+  advice_internal:
+    driver: overlay
+  traefik-public:
+    external: true

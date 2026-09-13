@@ -1,0 +1,23 @@
+{
+  "name": "@advice/worker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@advice/domain": "workspace:*",
+    "@advice/application": "workspace:*",
+    "@advice/infrastructure": "workspace:*",
+    "dotenv": "17.4.2",
+    "node-cron": "4.6.0"
+  },
+  "devDependencies": {
+    "tsx": "4.23.13",
+    "typescript": "5.9.3",
+    "@types/node": "24.13.4"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@advice/infrastructure",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node dist/db/migrate.js"
+  },
+  "dependencies": {
+    "@advice/domain": "workspace:*",
+    "drizzle-orm": "0.45.2",
+    "postgres": "3.4.9",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "drizzle-kit": "0.31.10",
+    "dotenv": "17.4.2",
+    "typescript": "5.9.3",
+    "@types/node": "24.13.4"
+  }
+}

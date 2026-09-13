@@ -1,0 +1,19 @@
+# Aplicado automaticamente por `docker compose up` quando não se passa
+# `-f`. Para desenvolvimento local: sobe só o Postgres em Docker e expõe
+# a porta 5432 no host — web e worker rodam nativamente (`pnpm dev:web`,
+# `pnpm dev:worker`) para hot-reload rápido, sem a fragilidade de bind
+# mount de node_modules de um monorepo pnpm dentro do container.
+#
+# Em produção, use `docker-stack.yml` (VPS real, Swarm + Traefik) ou,
+# num Compose simples sem Swarm, `docker compose -f docker-compose.yml
+# up -d --build`.
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+
+  worker:
+    profiles: ["prod-only"]
+
+  web:
+    profiles: ["prod-only"]

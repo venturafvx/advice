@@ -1,0 +1,33 @@
+{
+  "name": "advice",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@12.4.1+sha512.2e81e399d73fe8390dab25e06aa788ab7a5908248d2f5a370f82b481147a6a7a367bf8048f9a6fdb6460f21a66f0542dedb8b94ca2c8723596741920b1656d4c",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev:web": "pnpm --filter @advice/web dev",
+    "dev:worker": "pnpm --filter @advice/worker dev",
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "db:generate": "pnpm --filter @advice/infrastructure run db:generate",
+    "db:migrate": "pnpm --filter @advice/infrastructure run db:migrate"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "5.0.0",
+    "@types/node": "24.13.4",
+    "eslint": "9.39.5",
+    "@eslint/js": "9.39.5",
+    "typescript-eslint": "8.70.0",
+    "eslint-config-next": "16.3.5",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.12.0",
+    "next": "16.3.5",
+    "prettier": "3.9.6"
+  }
+}

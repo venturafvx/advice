@@ -1,0 +1,19 @@
+node_modules
+dist
+.next
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+coverage
+.turbo
+*.tsbuildinfo
+
+# Claude Code — estado local de sessão, não compartilhado
+.claude/
+
+# Notas operacionais de outros projetos que acabaram parando nesta pasta —
+# não faz parte do "advice", contém IP/acesso do VPS. Nunca subir.
+VPS_SUBIR_PASSO_A_PASSO*.md
+VPS_SUBIR_PASSO_A_PASSO*.md:Zone.Identifier
