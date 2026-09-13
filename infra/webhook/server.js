@@ -2,7 +2,8 @@
 
 // Webhook de deploy do advice.
 //
-// Fica escutando na 9001 (a 9000 é do torredeoracao), recebe o push da
+// Fica escutando na 9002 (a 9000 é do torredeoracao e a 9001 é do
+// vidanovaguarus — as duas já estavam ocupadas), recebe o push da
 // main vindo do GitHub e dispara scripts/deploy-remoto.sh com o SHA do
 // commit. Zero dependência de terceiro: só o que vem no Node.
 //
@@ -24,7 +25,7 @@ const fs = require('node:fs');
 const { spawn } = require('node:child_process');
 
 const SEGREDO = process.env.WEBHOOK_SECRET || '';
-const PORTA = Number(process.env.DEPLOY_PORT || 9001);
+const PORTA = Number(process.env.DEPLOY_PORT || 9002);
 const ENDERECO = process.env.DEPLOY_BIND || '0.0.0.0';
 const BRANCH = process.env.DEPLOY_BRANCH || 'main';
 const SCRIPT = process.env.DEPLOY_SCRIPT || '/var/www/advice/scripts/deploy-remoto.sh';

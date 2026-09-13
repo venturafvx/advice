@@ -15,7 +15,7 @@ DESTINO=/var/www/advice-webhook
 CONFIG=/etc/default/webhook-advice
 UNIT=/etc/systemd/system/webhook-advice.service
 LOG=/var/log/deploy-advice.log
-PORTA=9001   # a 9000 é do webhook do torredeoracao
+PORTA=${DEPLOY_PORT:-9002}   # a 9000 é do torredeoracao, a 9001 do vidanovaguarus
 USUARIO=deploy
 
 [ "$(id -u)" -eq 0 ] || { echo "ERRO: rode como root." >&2; exit 1; }
@@ -23,6 +23,19 @@ USUARIO=deploy
 
 NODE="$(command -v node || true)"
 [ -n "$NODE" ] || { echo "ERRO: node não encontrado no PATH." >&2; exit 1; }
+
+# A porta precisa estar livre — ou já ser nossa. Descobrir isso só DEPOIS
+# de instalar custou caro: o webhook do vidanovaguarus já ocupava a 9001,
+# o nosso serviço morria de EADDRINUSE em loop, e o health check batia no
+# vizinho, que respondia 200. Instalador que finge sucesso sobre porta
+# ocupada é pior do que instalador que falha alto.
+dono="$(ss -ltnp 2>/dev/null | awk -v porta=":$PORTA" '$4 ~ porta"$" {print; exit}' || true)"
+if [ -n "$dono" ] && ! systemctl is-active --quiet webhook-advice.service; then
+  echo "ERRO: a porta $PORTA já está ocupada por outro processo:" >&2
+  echo "      $dono" >&2
+  echo "      Escolha outra:  DEPLOY_PORT=9003 bash $0" >&2
+  exit 1
+fi
 
 rotar=0
 [ "${1:-}" = "--rotar-segredo" ] && rotar=1
@@ -46,10 +59,28 @@ chmod 640 "$LOG"
 install -m 644 "$REPO/infra/webhook/logrotate-advice-deploy" /etc/logrotate.d/advice-deploy
 
 echo "==> Configuração em $CONFIG"
+# O segredo é preservado entre execuções, mas o RESTO da configuração é
+# sempre reescrito. Antes, um $CONFIG existente era deixado intacto — e
+# então trocar a porta no instalador não surtia efeito nenhum: o serviço
+# continuava lendo o DEPLOY_PORT antigo e morrendo de EADDRINUSE, com o
+# instalador anunciando sucesso.
 if [ ! -f "$CONFIG" ] || [ "$rotar" -eq 1 ]; then
   [ -f "$CONFIG" ] && cp -a "$CONFIG" "$CONFIG.bak.$(date +%F-%H%M%S)"
   SEGREDO="$(openssl rand -hex 32)"
-  cat > "$CONFIG" <<EOF
+  SEGREDO_NOVO=1
+else
+  SEGREDO="$(awk -F= '/^WEBHOOK_SECRET=/{print $2}' "$CONFIG")"
+  [ -n "$SEGREDO" ] || {
+    echo "ERRO: $CONFIG existe mas não tem WEBHOOK_SECRET." >&2
+    echo "      Rode com --rotar-segredo para gerar um novo." >&2
+    exit 1
+  }
+  cp -a "$CONFIG" "$CONFIG.bak.$(date +%F-%H%M%S)"
+  echo "    (segredo preservado; resto da configuração atualizado)"
+  SEGREDO_NOVO=0
+fi
+
+cat > "$CONFIG" <<EOF
 WEBHOOK_SECRET=$SEGREDO
 DEPLOY_PORT=$PORTA
 DEPLOY_BRANCH=main
@@ -57,13 +88,8 @@ DEPLOY_SCRIPT=$REPO/scripts/deploy-remoto.sh
 DEPLOY_REPO=$REPO
 DEPLOY_LOG=$LOG
 EOF
-  chmod 600 "$CONFIG"
-  chown root:root "$CONFIG"
-  SEGREDO_NOVO=1
-else
-  echo "    (mantendo o segredo existente)"
-  SEGREDO_NOVO=0
-fi
+chmod 600 "$CONFIG"
+chown root:root "$CONFIG"
 
 echo "==> Unit do systemd"
 install -m 644 "$REPO/infra/webhook/webhook-advice.service" "$UNIT"
@@ -106,7 +132,23 @@ fi
 
 echo "==> Health"
 sleep 2
-curl -fsS "http://127.0.0.1:$PORTA/health" && echo ""
+if ! systemctl is-active --quiet webhook-advice.service; then
+  echo "ERRO: webhook-advice.service não subiu." >&2
+  systemctl status webhook-advice.service --no-pager -l | head -20 >&2
+  exit 1
+fi
+# Tem de ser o NOSSO /health. Um `curl -fsS` que aceita qualquer 200 foi
+# exatamente o que mascarou o EADDRINUSE: o vizinho na mesma porta também
+# devolvia 200, em texto puro. O nosso responde JSON e inclui "branch".
+resposta="$(curl -fsS --max-time 5 "http://127.0.0.1:$PORTA/health" || true)"
+case "$resposta" in
+  *'"branch"'*) echo "    $resposta" ;;
+  *)
+    echo "ERRO: a porta $PORTA respondeu, mas não é o webhook do advice:" >&2
+    echo "      ${resposta:-(nenhuma resposta)}" >&2
+    exit 1
+    ;;
+esac
 
 echo ""
 echo "Pronto."
