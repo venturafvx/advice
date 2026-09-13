@@ -47,6 +47,10 @@ services:
       EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
       EVOLUTION_INSTANCE_NAME: ${EVOLUTION_INSTANCE_NAME}
       WHATSAPP_DESTINO: ${WHATSAPP_DESTINO}
+      # Sem isto o worker recusa iniciar contra o Supabase (host
+      # remoto) e entra em crash loop com o restart_policy abaixo.
+      # Guarda em apps/worker/src/index.ts, flag em .env.production.
+      WORKER_PRIMARY: ${WORKER_PRIMARY}
       TZ: America/Sao_Paulo
     networks:
       - advice_internal

@@ -7,6 +7,7 @@ import { config } from "dotenv";
 config({ path: path.resolve(__dirname, "..", "..", "..", ".env") });
 
 import { schedule } from "node-cron";
+import { hostDoBanco, podeAgendarEnvios } from "./guarda";
 import { processarLembretesPendentes } from "@advice/application";
 import {
   DrizzleEnvioRepository,
@@ -30,7 +31,26 @@ async function tick(): Promise<void> {
   }
 }
 
+/**
+ * Efeito colateral da guarda: a regra pura mora em `./guarda`, aqui só
+ * traduzimos "não pode" em sair com erro legível antes de conectar.
+ */
+function exigirWorkerPrimario(): void {
+  if (podeAgendarEnvios(process.env.DATABASE_URL, process.env.WORKER_PRIMARY)) return;
+
+  const host = hostDoBanco(process.env.DATABASE_URL ?? "") ?? "desconhecido";
+  console.error(
+    `[worker] recusando iniciar: DATABASE_URL aponta para "${host}" (remoto) sem WORKER_PRIMARY=true.\n` +
+      "         Dois schedulers na mesma tabela disparam o mesmo lembrete duas vezes.\n" +
+      "         Para desenvolver, use o .env (Postgres local). Produção declara a flag\n" +
+      "         em .env.production.",
+  );
+  process.exit(1);
+}
+
 async function main(): Promise<void> {
+  exigirWorkerPrimario();
+
   // O worker é o único processo com uma única réplica garantida — é ele
   // quem aplica migrations no boot (idempotente). O `web` nunca migra,
   // para não correr risco de duas réplicas migrando ao mesmo tempo caso

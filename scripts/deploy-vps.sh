@@ -18,12 +18,21 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
-# O host do banco no Swarm precisa ser o nome qualificado da stack.
-# Nome curto (`postgres`) colide com o postgres_postgres compartilhado
-# que também está na rede Monadanet — a app conectaria no banco errado.
-if grep -qE '@postgres:5432' .env; then
-  echo "ERRO: DATABASE_URL está usando o host 'postgres'." >&2
-  echo "      No Swarm tem que ser 'advice_postgres' — ver .env.example." >&2
+# O banco de produção é o Supabase, não um Postgres na stack. Estas
+# checagens existem porque cada uma já custou um incidente ou quase:
+if grep -qE '@(postgres|advice_postgres|localhost|127\.0\.0\.1):5432' .env; then
+  echo "ERRO: DATABASE_URL aponta para um Postgres local/da stack." >&2
+  echo "      Produção é o Supabase — isto é um .env de dev." >&2
+  exit 1
+fi
+if ! grep -qE '^DATABASE_URL=.*pooler\.supabase\.com:6543/' .env; then
+  echo "ERRO: DATABASE_URL não é o pooler do Supabase na 6543." >&2
+  echo "      db.<ref>.supabase.co só resolve em IPv6 e este VPS não tem." >&2
+  echo "      A 6543 também é o sinal que desliga prepared statements." >&2
+  exit 1
+fi
+if ! grep -qE '^WORKER_PRIMARY=true$' .env; then
+  echo "ERRO: falta WORKER_PRIMARY=true — o worker vai recusar iniciar." >&2
   exit 1
 fi
 

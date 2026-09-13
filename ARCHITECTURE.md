@@ -12,7 +12,8 @@ infraestrutura e decisões de segurança.
 | **Next.js 16 (App Router)** | Remix, SvelteKit | Já é a escolha natural para um app fullstack pequeno em TS: API routes + UI no mesmo projeto, deploy standalone leve em Docker, sem servidor separado para a API. |
 | **pnpm workspaces** (sem Turborepo) | npm/yarn workspaces, Turborepo | pnpm é o mais rápido e mais seguro em disco (content-addressable store, non-hoisting evita "phantom dependencies"). Turborepo adicionaria cache de build distribuído que não faz diferença nesta escala (5 packages, build local). |
 | **Drizzle ORM + `postgres`** | Prisma | Drizzle gera SQL explícito, sem binário de engine separado (Prisma baixa um binário nativo por plataforma — mais superfície e mais peso na imagem Docker), migrations como SQL puro e legível. |
-| **PostgreSQL** | SQLite | Vai rodar em VPS com Docker de qualquer forma (junto da Evolution API) — Postgres não custa nada a mais aqui e evita os limites de concorrência de escrita do SQLite se o projeto crescer. |
+| **PostgreSQL** | SQLite | Evita os limites de concorrência de escrita do SQLite e é o denominador comum de qualquer Postgres gerenciado — trocar de provedor não toca em uma linha de código. |
+| **Supabase** (Postgres gerenciado) como banco de produção | Postgres em container no próprio VPS | O container era o caminho mais barato, mas deixava o dado num volume de nó único, sem backup, sem PITR e sem plano de restauração — um disco perdido levava junto todos os Lembretes. O Supabase é Postgres puro (17.6), então o custo da troca foi só a `DATABASE_URL`: Drizzle, repositórios e domínio ficaram intactos. Não usamos `supabase-js`: web e worker são processos de servidor, falam Postgres direto, e passar por PostgREST seria um salto de rede a mais sem ganho nenhum. |
 | **`node-cron`** (polling a cada minuto) | BullMQ + Redis | Granularidade de "dia e hora" não precisa de precisão de segundo — polling de 1 min é suficiente e não exige Redis. Adicionar uma fila com broker seria complexidade sem propósito real neste volume (uso pessoal). |
 | **ESLint 9.39.5** (não 10.x) | ESLint 10 (atual) | Testado nesta máquina: ESLint 10 quebra `eslint-plugin-react` (usa `context.getFilename()`, removido no ESLint 10) — `eslint-config-next` 16.3.5 ainda depende de uma versão do plugin sem esse fix. ESLint 9 está fora de suporte oficial, mas é a única combinação que funciona hoje com o lint do Next. Reavaliar quando `eslint-config-next` atualizar. |
 | **Zod 4.5.4** (não 4.6.4, a mais recente) | Zod 4.6.4 | 4.6.4 foi publicada horas antes deste setup — o próprio pnpm bloqueou por política de idade mínima de release (proteção contra supply-chain: dá tempo da comunidade flagar uma versão comprometida antes de instalar). Pinado em 4.5.4 (~2 semanas de idade) em vez de simplesmente contornar a política. |
@@ -35,7 +36,7 @@ advice/
 │   ├── web/              → Next.js: UI + API routes (composition root em src/lib/container.ts)
 │   └── worker/            → scheduler (node-cron), roda o caso de uso a cada minuto
 ├── docker-compose.yml           → produção (VPS)
-├── docker-compose.override.yml  → dev local (só sobe o Postgres)
+├── docker-compose.override.yml  → dev local (só sobe o Postgres de dev)
 └── docs/DOMAIN.md
 ```
 
@@ -108,6 +109,23 @@ não parecer um item esquecido.
 
 ## Como rodar
 
+O ambiente é separado em **dois arquivos de env**, e a separação é
+deliberada:
+
+| Arquivo | Banco | Quem lê |
+|---|---|---|
+| `.env` | Postgres local (Docker) | `pnpm dev:web` (via `next.config.ts`) e `pnpm dev:worker` (via `dotenv`) |
+| `.env.production` | Supabase (pooler, 6543) | ninguém em dev — é o artefato enviado ao VPS, onde vira `.env` |
+
+Um arquivo só não serve. Apontar a `DATABASE_URL` do dev para produção
+"só pra testar" transforma o worker local num **segundo scheduler** na
+mesma tabela: os dois processam o mesmo lembrete vencido e o
+destinatário recebe o WhatsApp duas vezes. O `docker-stack.yml` fixa o
+worker em 1 réplica, mas isso só governa o que roda dentro do Swarm.
+Por isso o worker também se recusa a iniciar contra um host remoto sem
+`WORKER_PRIMARY=true`, flag que existe apenas em `.env.production`
+(`apps/worker/src/index.ts`).
+
 **Dev local** (infra em Docker, código rodando nativo para hot-reload):
 ```
 cp .env.example .env   # edite EVOLUTION_API_KEY e WHATSAPP_DESTINO
@@ -118,6 +136,10 @@ pnpm dev:web
 pnpm dev:worker
 ```
 Web sobe em `http://localhost:3000`.
+
+Atenção: não existe sandbox da Evolution API — dev e produção falam com
+a mesma instância. Um lembrete que vencer em dev manda WhatsApp de
+verdade para `WHATSAPP_DESTINO`.
 
 **Produção — VPS real (167.88.42.134), Docker Swarm + Traefik:**
 
@@ -138,27 +160,41 @@ rede chamada "traefik-public"), e os routers usam `tls: true` sem
 `certresolver` explícito (o Traefik desse VPS não exige um nome de
 resolver por router).
 
+Da máquina de dev, envie o env de produção (ele aterrissa no VPS como
+`.env`, porque `docker stack deploy` não tem `--env-file` e
+`deploy-vps.sh` faz `source .env`):
+```
+./scripts/enviar-env-producao.sh root@167.88.42.134
+```
+
+Depois, no VPS:
 ```
 cd /var/www/advice
-cp .env.example .env   # preencha de verdade
-docker build -f apps/web/Dockerfile    -t advice-web:latest    .
-docker build -f apps/worker/Dockerfile -t advice-worker:latest .
-docker stack deploy -c docker-stack.yml advice
+./scripts/deploy-vps.sh                # builda, valida o .env e sobe a stack
 docker service ls | grep advice_       # confirmar 1/1 em todos
 ```
+`deploy-vps.sh` aborta antes de subir se a `DATABASE_URL` for local, se
+não for o pooler do Supabase na 6543, ou se faltar `WORKER_PRIMARY`.
 
 **Produção alternativa — Compose simples, sem Swarm (outro servidor):**
 ```
-cp .env.example .env   # preencha de verdade
+cp .env.production .env   # o Compose lê `.env` via env_file:
 docker compose -f docker-compose.yml up -d --build
 ```
+Aqui o `env_file:` repassa o arquivo inteiro, então `WORKER_PRIMARY`
+chega ao worker sem precisar ser declarado serviço a serviço — ao
+contrário do `docker-stack.yml`, onde cada variável é explícita.
 Web fica exposto em `:3010` (ajuste a porta em `docker-compose.yml` se já
 houver algo nela no host).
 
 ## Custo
 
-- Postgres, worker e web rodam no VPS que já existe (mesmo host da
-  Evolution API) — custo marginal de infraestrutura é zero.
+- Worker e web rodam no VPS que já existe (mesmo host da Evolution
+  API) — custo marginal de infraestrutura é zero.
+- O banco é o Supabase (projeto `advice`, ca-central-1). No volume deste
+  projeto — dezenas de linhas, ~1 query leve por minuto — o free tier
+  cobre com folga, e ele traz backup diário e restauração gerenciada,
+  que o container no VPS não tinha.
 - Único custo de operação: 1 chamada HTTP à Evolution API por Lembrete
   enviado (mensagem de texto simples, sem custo de tokens de LLM
   envolvido). O scheduler faz 1 query leve ao Postgres por minuto
