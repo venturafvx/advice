@@ -15,7 +15,7 @@ DESTINO=/var/www/advice-webhook
 CONFIG=/etc/default/webhook-advice
 UNIT=/etc/systemd/system/webhook-advice.service
 LOG=/var/log/deploy-advice.log
-PORTA=${DEPLOY_PORT:-9002}   # a 9000 é do torredeoracao, a 9001 do vidanovaguarus
+PORTA=${DEPLOY_PORT:-9003}   # a 9000, 9001 e 9002 já estão ocupadas neste VPS
 USUARIO=deploy
 
 [ "$(id -u)" -eq 0 ] || { echo "ERRO: rode como root." >&2; exit 1; }
@@ -25,7 +25,7 @@ NODE="$(command -v node || true)"
 [ -n "$NODE" ] || { echo "ERRO: node não encontrado no PATH." >&2; exit 1; }
 
 # A porta precisa estar livre — ou já ser nossa. Descobrir isso só DEPOIS
-# de instalar custou caro: o webhook do vidanovaguarus já ocupava a 9001,
+# de instalar custou caro: a 9000/9001/9002 já eram de outros webhooks,
 # o nosso serviço morria de EADDRINUSE em loop, e o health check batia no
 # vizinho, que respondia 200. Instalador que finge sucesso sobre porta
 # ocupada é pior do que instalador que falha alto.
@@ -33,7 +33,7 @@ dono="$(ss -ltnp 2>/dev/null | awk -v porta=":$PORTA" '$4 ~ porta"$" {print; exi
 if [ -n "$dono" ] && ! systemctl is-active --quiet webhook-advice.service; then
   echo "ERRO: a porta $PORTA já está ocupada por outro processo:" >&2
   echo "      $dono" >&2
-  echo "      Escolha outra:  DEPLOY_PORT=9003 bash $0" >&2
+  echo "      Escolha outra livre (ss -ltnp):  DEPLOY_PORT=9004 bash $0" >&2
   exit 1
 fi
 

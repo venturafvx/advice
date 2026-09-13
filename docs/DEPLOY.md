@@ -6,7 +6,7 @@ sem ninguém abrir SSH.
 ```
 push na main
    │
-   ├─ GitHub dispara POST http://167.88.42.134:9002/deploy  (assinado, HMAC-SHA256)
+   ├─ GitHub dispara POST http://167.88.42.134:9003/deploy  (assinado, HMAC-SHA256)
    │
    ├─ webhook-advice.service  ......... valida assinatura, evento, branch e SHA
    │                                    um deploy por vez (o 2º leva 409)
@@ -36,7 +36,7 @@ três diferenças deliberadas:
 | Configuração + segredo | `/etc/default/webhook-advice` (modo 600, root) |
 | Deploy | `/var/www/advice/scripts/deploy-remoto.sh` → `deploy-vps.sh` |
 | Log de deploy | `/var/log/deploy-advice.log` (logrotate semanal) |
-| Porta | `9002` — a `9000` é do torredeoracao e a `9001` do vidanovaguarus. Confira com `ss -ltnp` antes de assumir que uma porta está livre; o instalador agora recusa instalar sobre porta ocupada. Override: `DEPLOY_PORT=9003`. |
+| Porta | `9003`. As `9000`, `9001` e `9002` já são de outros webhooks deste VPS — confira com `ss -ltnp` antes de assumir que uma porta está livre, em vez de deduzir pelo vizinho que você conhece. O instalador recusa instalar sobre porta ocupada. Override: `DEPLOY_PORT=9004 bash infra/webhook/instalar.sh`. |
 
 ---
 
@@ -61,7 +61,7 @@ bash infra/webhook/instalar.sh
 
 Ele cria o usuário `deploy` (no grupo `docker`), instala o `server.js`, a
 unit do systemd e o logrotate, gera o `WEBHOOK_SECRET`, sobe o serviço,
-restringe a porta 9002 às faixas de IP do GitHub (se o `ufw` estiver
+restringe a porta 9003 às faixas de IP do GitHub (se o `ufw` estiver
 ativo) e imprime o segredo no fim. É idempotente — rodar de novo atualiza
 tudo e **preserva** o segredo. Para trocar o segredo:
 `bash infra/webhook/instalar.sh --rotar-segredo`.
@@ -72,7 +72,7 @@ tudo e **preserva** o segredo. Para trocar o segredo:
 
 | Campo | Valor |
 | --- | --- |
-| Payload URL | `http://167.88.42.134:9002/deploy` |
+| Payload URL | `http://167.88.42.134:9003/deploy` |
 | Content type | `application/json` |
 | Secret | o segredo impresso pelo instalador |
 | Events | `Just the push event` |
@@ -84,7 +84,7 @@ O GitHub manda um `ping` na hora — a entrega tem que voltar `200`.
 
 ```bash
 # saúde
-curl -i http://127.0.0.1:9002/health
+curl -i http://127.0.0.1:9003/health
 
 # disparo assinado, sem passar pelo GitHub
 SEGREDO=$(sudo awk -F= '/^WEBHOOK_SECRET=/{print $2}' /etc/default/webhook-advice)
@@ -92,7 +92,7 @@ SHA=$(sudo -u deploy git -C /var/www/advice rev-parse HEAD)
 BODY="{\"ref\":\"refs/heads/main\",\"after\":\"$SHA\"}"
 SIG="sha256=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$SEGREDO" -hex | sed 's/^.* //')"
 
-curl -i -X POST http://127.0.0.1:9002/deploy \
+curl -i -X POST http://127.0.0.1:9003/deploy \
   -H 'Content-Type: application/json' \
   -H 'X-GitHub-Event: push' \
   -H 'X-GitHub-Delivery: teste-local-1' \
@@ -100,7 +100,7 @@ curl -i -X POST http://127.0.0.1:9002/deploy \
   --data "$BODY"
 
 # assinatura errada TEM que dar 401
-curl -s -o /dev/null -w '%{http_code}\n' -X POST http://127.0.0.1:9002/deploy \
+curl -s -o /dev/null -w '%{http_code}\n' -X POST http://127.0.0.1:9003/deploy \
   -H 'X-GitHub-Event: push' -H 'X-Hub-Signature-256: sha256=errado' --data "$BODY"
 ```
 
@@ -149,7 +149,7 @@ Em ordem, do mais comum ao mais raro:
 
 # 2. o serviço está de pé?
 sudo systemctl status webhook-advice.service --no-pager -l
-sudo ss -ltnp | grep :9002
+sudo ss -ltnp | grep :9003
 
 # 3. o webhook recebeu e disparou?
 sudo journalctl -u webhook-advice.service -n 100 --no-pager
