@@ -126,6 +126,34 @@ As que mais provavelmente geram confusão numa sessão futura:
   saber o que empacotar. `apps/web` nunca teve esse problema — o
   `.next/standalone` do Next já resolve isso sozinho.
 
+## Armadilha importante: colisão de nome de serviço na Monadanet
+
+O `web` precisa estar na rede `Monadanet` (pro Traefik alcançar), e
+nessa rede JÁ EXISTE um serviço com alias `postgres` (o
+`postgres_postgres` compartilhado do VPS, Postgres 14 de outro
+projeto). Usar `@postgres:5432` no `DATABASE_URL` fez o `web` conectar
+no banco do outro projeto e falhar com `password authentication failed`
+— enquanto o `worker` (que está só na `advice_internal`) conectava
+certo. **No Swarm, sempre o nome qualificado: `advice_postgres`.**
+`scripts/deploy-vps.sh` tem um guard que aborta o deploy se o `.env`
+estiver com o host errado.
+
+Detalhe que dá calafrio: se aquele Postgres compartilhado tivesse um
+usuário `advice` com a mesma senha, a app teria escrito dados no banco
+de outro projeto silenciosamente, sem erro nenhum.
+
+## Traefik desse VPS — como certificado funciona
+
+- Certresolver chamado **`letsencryptresolver`** (HTTP challenge via
+  entrypoint `web`), storage em `/etc/traefik/letsencrypt/acme.json`
+  (volume `volume_swarm_certificates`).
+- **Não existe certresolver padrão na entrypoint** — cada router tem que
+  declarar `tls.certresolver=letsencryptresolver` no label, senão o
+  Traefik serve o self-signed dele. O `vidanovaguarus_web` não tem esse
+  label e mesmo assim funciona porque o cert dele já está emitido e
+  salvo no acme.json (vai quebrar quando expirar, se ninguém mexer).
+- A entrypoint `web` (:80) já tem redirect global pra `websecure`.
+
 ## Próximo passo natural
 
 Deploy no VPS em andamento, guiado comando a comando (sem acesso SSH
