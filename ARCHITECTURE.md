@@ -121,18 +121,22 @@ Web sobe em `http://localhost:3000`.
 
 **Produção — VPS real (167.88.42.134), Docker Swarm + Traefik:**
 
-Esse VPS já roda outros projetos (`vidanovaguarus`, `torredeoracao`) como
-serviços Swarm atrás de um Traefik que roteia por domínio — ver
-`VPS_SUBIR_PASSO_A_PASSO 1 1.md`. Este projeto sobe do mesmo jeito, como
-stack `advice`, exposto em `advice.autozapx.com`. Use `docker-stack.yml`
-(não `docker-compose.yml` — Swarm não builda imagem nem entende
-`depends_on` com `condition:`, por isso os dois arquivos são diferentes
-e o worker aplica as próprias migrations no boot em vez de depender de
-um serviço `migrate` separado). Leia os comentários no topo de
-`docker-stack.yml` antes do primeiro deploy — há 3 valores
-(nome da rede do Traefik, nome do entrypoint HTTPS, nome do
-certresolver) que dependem de como o Traefik desse VPS específico está
-configurado e que eu não tinha como confirmar sem acesso ao VPS.
+Esse VPS ("Monadaserver") já roda vários outros projetos
+(`vidanovaguarus`, `torredeoracao`, `evolution` — a própria Evolution
+API — e outros) como serviços Swarm atrás de um Traefik que roteia por
+domínio. Este projeto sobe do mesmo jeito, como stack `advice`, exposto
+em `advice.autozapx.com`. Use `docker-stack.yml` (não
+`docker-compose.yml` — Swarm não builda imagem nem entende `depends_on`
+com `condition:`, nem `env_file:`; por isso os dois arquivos são
+diferentes, as env vars usam `${VAR}` e o worker aplica as próprias
+migrations no boot em vez de depender de um serviço `migrate` separado).
+
+Rede e labels do Traefik em `docker-stack.yml` **não são placeholder** —
+foram confirmados direto no VPS, inspecionando o `vidanovaguarus_web`
+que já funciona: a rede compartilhada é `Monadanet` (não existe uma
+rede chamada "traefik-public"), e os routers usam `tls: true` sem
+`certresolver` explícito (o Traefik desse VPS não exige um nome de
+resolver por router).
 
 ```
 cd /var/www/advice

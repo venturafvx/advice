@@ -56,14 +56,23 @@ API; `apps/web` e `apps/worker` só fazem composition root + entrega.
 
 ## Pendências conhecidas (não são bugs, são escopo futuro)
 
-- Migrations e boot completo dos containers Docker não foram validados
-  numa máquina real com Docker (sandbox de desenvolvimento não tinha
-  Docker disponível) — validar no primeiro deploy no VPS.
 - Sem testes de integração para os repositórios Drizzle nem para o
   `EvolutionApiNotificador` (só testes unitários do domínio puro). Vale
   adicionar quando houver um Postgres de teste disponível em CI.
-- `docker-stack.yml` tem 3 valores placeholder que dependem da config do
-  Traefik desse VPS específico (nome da rede externa, entrypoint HTTPS,
-  certresolver) — confirmar contra `docker network ls` / o
-  `docker-compose.yml` de `vidanovaguarus` ou `torredeoracao` antes do
-  primeiro deploy.
+- Numeração de `tentativa` em `Envio` não é atômica (`contarTentativas` +
+  `salvar` em dois passos) — sob dois processos do worker rodando ao
+  mesmo tempo, gera `tentativa` duplicada/pulada. Mitigado em produção
+  pela regra de 1 réplica do worker, mas é uma fragilidade real. Ver
+  `MEMORY.md`.
+
+## Já validado de verdade (não é suposição)
+
+- Local: `pnpm typecheck/lint/test/build` limpos; app rodando de ponta a
+  ponta (Postgres em Docker + web/worker nativos) com **envio real de
+  WhatsApp confirmado** via instância "advice" + API key global.
+- VPS de produção (Monadaserver, 167.88.42.134): rede Traefik real é
+  `Monadanet` (não existe "traefik-public"), routers usam `tls: true`
+  sem `certresolver` explícito — confirmado inspecionando
+  `vidanovaguarus_web`, que já roda assim. `docker-stack.yml` reflete
+  isso, não é mais placeholder. `docker stack deploy` **não suporta**
+  `env_file:` (só `docker compose up` suporta) — por isso usa `${VAR}`.

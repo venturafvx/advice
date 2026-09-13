@@ -24,7 +24,12 @@ Resumo vivo do estado do projeto. Detalhe maior vai em `docs/topics/`
   de primeira: `mensagem_provider_id: 3EB004C90AB14319A3826E`, lembrete
   foi para `ENVIADO`. **Config atual que funciona**:
   `EVOLUTION_INSTANCE_NAME=advice`, `EVOLUTION_API_KEY=<api key global>`.
-- **Não deployado no VPS ainda.**
+- **Código no GitHub**: `https://github.com/venturafvx/advice` (público),
+  branch `main`. Push feito via `gh` (autenticado como `venturafvx`).
+  `.env` real e o arquivo `VPS_SUBIR_PASSO_A_PASSO*.md` (não é deste
+  projeto, tem IP/acesso do VPS) ficaram de fora de propósito — ver
+  `.gitignore`.
+- **Deploy no VPS em andamento** — ver seção "VPS de produção" abaixo.
 
 ## Bugs encontrados e corrigidos rodando de verdade
 
@@ -40,6 +45,44 @@ Resumo vivo do estado do projeto. Detalhe maior vai em `docs/topics/`
   (`docker-stack.yml`), mas é uma fragilidade real se algum dia dois
   processos rodarem simultâneos (ex: deploy mal coordenado). Não
   corrigido ainda — anotado como dívida técnica.
+
+## VPS de produção (Monadaserver, 167.88.42.134) — estrutura real confirmada
+
+- Docker Swarm com dezenas de stacks já rodando: `vidanovaguarus_web`,
+  `torredeoracao_web`, `evolution_evolution_api` (+ redis própria),
+  `postgres_postgres` (compartilhado, Postgres 14), `n8n_*`, `mongodb_*`
+  (exposto publicamente na porta 27017 — não é nosso problema, mas
+  notar), `traefik_traefik` (Traefik v3.5.3), entre outros.
+- **Rede compartilhada real: `Monadanet`** (overlay). Não existe rede
+  chamada "traefik-public" — confirmado com `docker network ls` e
+  inspecionando `vidanovaguarus_web`.
+- Traefik: routers usam `tls: true` **sem** `certresolver` explícito no
+  label (confirmado no `vidanovaguarus_web`, que funciona em produção).
+  Dois routers por app — um em `entrypoints=web` (HTTP), outro em
+  `entrypoints=websecure` com `tls=true`.
+- `docker stack deploy` **não suporta `env_file:`** — só `docker compose
+  up` suporta. `docker-stack.yml` usa `${VAR}` (Docker resolve lendo o
+  `.env` no mesmo diretório no momento do deploy).
+- Convenção de projeto: cada app fica em `/var/www/<nome>`, com um
+  `docker-compose.yml` (mesmo rodando via `docker stack deploy`, não
+  `docker compose up` — nome do arquivo é só convenção deles) e um
+  `deploy-<nome>.sh` na raiz de `/var/www`. `advice` usa nomes de
+  arquivo diferentes (`docker-compose.yml` = dev local real,
+  `docker-stack.yml` = produção Swarm) porque, ao contrário dos outros
+  projetos, este tem workflow de dev local de verdade.
+- `git` 2.30.2 já instalado no VPS. 131GB livres em `/`. Decisão: clonar
+  `https://github.com/venturafvx/advice.git` em `/var/www/advice`.
+- Evolution API não tem porta publicada no Swarm (`Endpoint.Ports: null`)
+  e não tem pasta em `/var/www` — rodando só via `docker stack deploy`
+  direto, imagem `evoapicloud/evolution-api:latest`. Daria pra falar com
+  ela via rede interna (`http://evolution_api:8080` provavelmente,
+  alias confirmado é `evolution_api`), mas não confirmei a porta —
+  ficamos com a URL pública (`https://evolution.autozapx.com`), que já
+  está comprovadamente funcionando. Otimização de rede interna fica como
+  ideia futura, não prioridade.
+- Postgres: decisão explícita do fundador foi **dedicado** para o
+  advice (não usar o `postgres_postgres` compartilhado) — isolamento e
+  simplicidade de backup.
 
 ## Decisões de produto confirmadas com o fundador
 
@@ -66,8 +109,10 @@ As que mais provavelmente geram confusão numa sessão futura:
 
 ## Próximo passo natural
 
-Envio real confirmado — falta só o deploy no VPS (`docker-stack.yml`).
-Nesse ponto, considerar rodar `/hm-security` L1 (recomendado pelo
-próprio `/hm-init`) antes de expor `advice.autozapx.com` publicamente.
-Lembrar de preencher `.env` no VPS com `EVOLUTION_INSTANCE_NAME=advice`
-e a API key global (não a antiga apikey da Sophia).
+Deploy no VPS em andamento, guiado comando a comando (sem acesso SSH
+direto desta máquina — só a deploy key do `sitevidanova` existe aqui, e
+é scoped só àquele repo). Falta: clonar o repo em `/var/www/advice`,
+criar `.env` real lá (`EVOLUTION_INSTANCE_NAME=advice`, API key global),
+buildar as duas imagens e rodar `docker stack deploy -c docker-stack.yml
+advice`. Depois, considerar `/hm-security` L1 antes de considerar o
+domínio realmente "em produção" pra valer.
