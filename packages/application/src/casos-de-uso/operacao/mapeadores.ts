@@ -14,6 +14,7 @@ export function compraParaDto(compra: Compra): CompraDto {
   const dados = compra.getDados();
   return {
     id: compra.getId().toString(),
+    negocio: dados.negocio,
     descricao: dados.descricao,
     quantidade: dados.quantidade,
     custoUnitarioCentavos: dados.custoUnitario.emCentavos(),
@@ -29,6 +30,7 @@ export function servicoParaDto(servico: Servico): ServicoDto {
   const dados = servico.getDados();
   return {
     id: servico.getId().toString(),
+    negocio: dados.negocio,
     descricao: dados.descricao,
     cliente: dados.cliente,
     valorRecebidoCentavos: dados.valorRecebido.emCentavos(),

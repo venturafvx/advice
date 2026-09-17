@@ -2,6 +2,7 @@ import { DomainError } from "../erros/DomainError";
 import { CompraId } from "./CompraId";
 import { CustoOperacional } from "./CustoOperacional";
 import { Dinheiro } from "./Dinheiro";
+import { ehNegocio, type Negocio } from "./Negocio";
 import { calcularResultado, type ResultadoFinanceiro } from "./ResultadoFinanceiro";
 
 const DESCRICAO_MAX_LENGTH = 200;
@@ -11,6 +12,7 @@ const QUANTIDADE_MAX = 1_000_000;
 const CUSTOS_MAX = 30;
 
 export interface DadosDaCompra {
+  negocio: Negocio;
   descricao: string;
   quantidade: number;
   custoUnitario: Dinheiro;
@@ -36,6 +38,7 @@ export interface CompraPropsRestauracao extends DadosDaCompra {
  * existe para responder "a esse preço, quanto sobra?" antes de comprar.
  *
  * Invariantes:
+ * - pertence a um negócio conhecido
  * - descrição não vazia, até 200 caracteres
  * - quantidade inteira, de 1 a 1.000.000
  * - custo e preço são `Dinheiro` (inteiros de centavos, não-negativos)
@@ -100,6 +103,12 @@ export class Compra {
   }
 
   private static validar(dados: DadosDaCompra): DadosDaCompra {
+    // Checagem em runtime apesar do tipo: o valor entra por API e por
+    // restauração do banco, dois caminhos onde o compilador não alcança.
+    if (!ehNegocio(dados.negocio)) {
+      throw new DomainError("Escolha a qual negócio esta compra pertence");
+    }
+
     const descricao = dados.descricao.trim();
     if (descricao.length === 0) {
       throw new DomainError("Descreva o que foi comprado");

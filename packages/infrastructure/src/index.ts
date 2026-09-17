@@ -3,6 +3,8 @@ export { DrizzleEnvioRepository } from "./repositories/DrizzleEnvioRepository";
 export { DrizzleCompraRepository } from "./repositories/DrizzleCompraRepository";
 export { DrizzleServicoRepository } from "./repositories/DrizzleServicoRepository";
 export { DrizzleCategoriaDeCustoRepository } from "./repositories/DrizzleCategoriaDeCustoRepository";
+export { DrizzleHabitoRepository } from "./repositories/DrizzleHabitoRepository";
+export { DrizzleRegistroDeHabitoRepository } from "./repositories/DrizzleRegistroDeHabitoRepository";
 export { EvolutionApiNotificador } from "./whatsapp/EvolutionApiNotificador";
 export { getEnv } from "./config/env";
 export type { Env } from "./config/env";

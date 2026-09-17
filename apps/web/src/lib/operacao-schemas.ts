@@ -1,5 +1,6 @@
 import { z } from "zod";
-import type { FiltroPeriodo } from "@advice/domain";
+import { Negocio, ehNegocio } from "@advice/domain";
+import type { FiltroOperacao } from "@advice/domain";
 
 /** Teto espelhando o limite de `Dinheiro` no domínio (R$ 1 bilhão). */
 const CENTAVOS_MAX = 100_000_000_000;
@@ -34,7 +35,18 @@ const observacaoSchema = z
   .nullish()
   .transform((valor) => valor ?? null);
 
+/**
+ * A qual negócio a operação pertence. Campo obrigatório no corpo: o
+ * formulário já sabe (veio da rota), e deixá-lo implícito no servidor
+ * significaria adivinhar — e adivinhar errado põe o lançamento no
+ * painel do outro negócio.
+ */
+const negocioSchema = z.enum(Negocio, {
+  message: "Escolha a qual negócio esta operação pertence",
+});
+
 export const compraSchema = z.object({
+  negocio: negocioSchema,
   descricao: z.string().trim().min(1, "Descreva o que foi comprado").max(200),
   quantidade: z.number().int("A quantidade precisa ser um número inteiro").min(1).max(1_000_000),
   custoUnitarioCentavos: z.number().int().min(0).max(CENTAVOS_MAX),
@@ -45,6 +57,7 @@ export const compraSchema = z.object({
 });
 
 export const servicoSchema = z.object({
+  negocio: negocioSchema,
   descricao: z.string().trim().min(1, "Descreva o serviço prestado").max(200),
   cliente: z
     .string()
@@ -66,15 +79,23 @@ export const categoriaSchema = z.object({
 export const arquivamentoSchema = z.object({ arquivada: z.boolean() });
 
 /**
- * Recorte de período vindo da query string (`?de=&ate=`). `ate` vai até
- * o último instante do dia — sem isso, filtrar "até 30/09" excluiria
- * tudo o que aconteceu no próprio dia 30.
+ * Recorte vindo da query string (`?negocio=&de=&ate=`). `ate` vai até o
+ * último instante do dia — sem isso, filtrar "até 30/09" excluiria tudo
+ * o que aconteceu no próprio dia 30.
+ *
+ * `negocio` ausente é "os dois", que é o que a visão geral quer; valor
+ * desconhecido é ignorado em vez de virar erro, porque uma query string
+ * torta não deve derrubar uma leitura.
  */
-export function lerFiltroPeriodo(url: URL): FiltroPeriodo | undefined {
+export function lerFiltroOperacao(url: URL): FiltroOperacao | undefined {
   const de = url.searchParams.get("de");
   const ate = url.searchParams.get("ate");
+  const negocio = url.searchParams.get("negocio");
 
-  const filtro: FiltroPeriodo = {};
+  const filtro: FiltroOperacao = {};
+  if (negocio && ehNegocio(negocio)) {
+    filtro.negocio = negocio;
+  }
   if (de && /^\d{4}-\d{2}-\d{2}$/.test(de)) {
     filtro.de = new Date(`${de}T00:00:00`);
   }
@@ -82,5 +103,5 @@ export function lerFiltroPeriodo(url: URL): FiltroPeriodo | undefined {
     filtro.ate = new Date(`${ate}T23:59:59.999`);
   }
 
-  return filtro.de || filtro.ate ? filtro : undefined;
+  return filtro.negocio || filtro.de || filtro.ate ? filtro : undefined;
 }

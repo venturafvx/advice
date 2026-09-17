@@ -1,0 +1,995 @@
+{
+  "id": "a33770cc-9753-4781-afa1-99f3afb0caff",
+  "prevId": "257f3bb0-7185-4d09-8b87-964f8a615885",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.categorias_custo": {
+      "name": "categorias_custo",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "modo_padrao": {
+          "name": "modo_padrao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valor_padrao": {
+          "name": "valor_padrao",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "arquivada": {
+          "name": "arquivada",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "categorias_custo_nome_unico": {
+          "name": "categorias_custo_nome_unico",
+          "columns": [
+            {
+              "expression": "lower(\"nome\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "categorias_custo_modo_valido": {
+          "name": "categorias_custo_modo_valido",
+          "value": "\"categorias_custo\".\"modo_padrao\" in ('VALOR_FIXO', 'POR_UNIDADE', 'PERCENTUAL_DA_VENDA')"
+        },
+        "categorias_custo_valor_padrao_nao_negativo": {
+          "name": "categorias_custo_valor_padrao_nao_negativo",
+          "value": "\"categorias_custo\".\"valor_padrao\" is null or \"categorias_custo\".\"valor_padrao\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.compras": {
+      "name": "compras",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "negocio": {
+          "name": "negocio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "descricao": {
+          "name": "descricao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantidade": {
+          "name": "quantidade",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "custo_unitario_centavos": {
+          "name": "custo_unitario_centavos",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "preco_venda_unitario_centavos": {
+          "name": "preco_venda_unitario_centavos",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "comprado_em": {
+          "name": "comprado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "observacao": {
+          "name": "observacao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "atualizado_em": {
+          "name": "atualizado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "compras_negocio_comprado_em_idx": {
+          "name": "compras_negocio_comprado_em_idx",
+          "columns": [
+            {
+              "expression": "negocio",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "comprado_em",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "compras_negocio_valido": {
+          "name": "compras_negocio_valido",
+          "value": "\"compras\".\"negocio\" in ('FABIOJUNIORDECOR', 'VENTURAX')"
+        },
+        "compras_quantidade_positiva": {
+          "name": "compras_quantidade_positiva",
+          "value": "\"compras\".\"quantidade\" > 0"
+        },
+        "compras_custo_nao_negativo": {
+          "name": "compras_custo_nao_negativo",
+          "value": "\"compras\".\"custo_unitario_centavos\" >= 0"
+        },
+        "compras_preco_nao_negativo": {
+          "name": "compras_preco_nao_negativo",
+          "value": "\"compras\".\"preco_venda_unitario_centavos\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.custos_compra": {
+      "name": "custos_compra",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "compra_id": {
+          "name": "compra_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "categoria_id": {
+          "name": "categoria_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "modo": {
+          "name": "modo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valor": {
+          "name": "valor",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ordem": {
+          "name": "ordem",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "custos_compra_compra_id_idx": {
+          "name": "custos_compra_compra_id_idx",
+          "columns": [
+            {
+              "expression": "compra_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "custos_compra_categoria_id_idx": {
+          "name": "custos_compra_categoria_id_idx",
+          "columns": [
+            {
+              "expression": "categoria_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "custos_compra_compra_id_compras_id_fk": {
+          "name": "custos_compra_compra_id_compras_id_fk",
+          "tableFrom": "custos_compra",
+          "tableTo": "compras",
+          "columnsFrom": [
+            "compra_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "custos_compra_categoria_id_categorias_custo_id_fk": {
+          "name": "custos_compra_categoria_id_categorias_custo_id_fk",
+          "tableFrom": "custos_compra",
+          "tableTo": "categorias_custo",
+          "columnsFrom": [
+            "categoria_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "custos_compra_modo_valido": {
+          "name": "custos_compra_modo_valido",
+          "value": "\"custos_compra\".\"modo\" in ('VALOR_FIXO', 'POR_UNIDADE', 'PERCENTUAL_DA_VENDA')"
+        },
+        "custos_compra_valor_nao_negativo": {
+          "name": "custos_compra_valor_nao_negativo",
+          "value": "\"custos_compra\".\"valor\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.custos_servico": {
+      "name": "custos_servico",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "servico_id": {
+          "name": "servico_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "categoria_id": {
+          "name": "categoria_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "modo": {
+          "name": "modo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valor": {
+          "name": "valor",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ordem": {
+          "name": "ordem",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "custos_servico_servico_id_idx": {
+          "name": "custos_servico_servico_id_idx",
+          "columns": [
+            {
+              "expression": "servico_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "custos_servico_categoria_id_idx": {
+          "name": "custos_servico_categoria_id_idx",
+          "columns": [
+            {
+              "expression": "categoria_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "custos_servico_servico_id_servicos_id_fk": {
+          "name": "custos_servico_servico_id_servicos_id_fk",
+          "tableFrom": "custos_servico",
+          "tableTo": "servicos",
+          "columnsFrom": [
+            "servico_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "custos_servico_categoria_id_categorias_custo_id_fk": {
+          "name": "custos_servico_categoria_id_categorias_custo_id_fk",
+          "tableFrom": "custos_servico",
+          "tableTo": "categorias_custo",
+          "columnsFrom": [
+            "categoria_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "custos_servico_modo_valido": {
+          "name": "custos_servico_modo_valido",
+          "value": "\"custos_servico\".\"modo\" in ('VALOR_FIXO', 'PERCENTUAL_DA_VENDA')"
+        },
+        "custos_servico_valor_nao_negativo": {
+          "name": "custos_servico_valor_nao_negativo",
+          "value": "\"custos_servico\".\"valor\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.envios": {
+      "name": "envios",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "lembrete_id": {
+          "name": "lembrete_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tentativa": {
+          "name": "tentativa",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mensagem_provider_id": {
+          "name": "mensagem_provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "erro": {
+          "name": "erro",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "executado_em": {
+          "name": "executado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "envios_lembrete_id_lembretes_id_fk": {
+          "name": "envios_lembrete_id_lembretes_id_fk",
+          "tableFrom": "envios",
+          "tableTo": "lembretes",
+          "columnsFrom": [
+            "lembrete_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.habitos": {
+      "name": "habitos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "motivacao": {
+          "name": "motivacao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "frequencia": {
+          "name": "frequencia",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dias_semana": {
+          "name": "dias_semana",
+          "type": "integer[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vezes_por_semana": {
+          "name": "vezes_por_semana",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "arquivado": {
+          "name": "arquivado",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "atualizado_em": {
+          "name": "atualizado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "habitos_nome_unico_ativo": {
+          "name": "habitos_nome_unico_ativo",
+          "columns": [
+            {
+              "expression": "lower(btrim(\"nome\"))",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"habitos\".\"arquivado\" = false",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "habitos_ativos_idx": {
+          "name": "habitos_ativos_idx",
+          "columns": [
+            {
+              "expression": "criado_em",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"habitos\".\"arquivado\" = false",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "habitos_nome_nao_vazio": {
+          "name": "habitos_nome_nao_vazio",
+          "value": "btrim(\"habitos\".\"nome\") <> ''"
+        },
+        "habitos_frequencia_coerente": {
+          "name": "habitos_frequencia_coerente",
+          "value": "(\n        \"habitos\".\"frequencia\" = 'DIARIA'\n        and \"habitos\".\"dias_semana\" is null\n        and \"habitos\".\"vezes_por_semana\" is null\n      ) or (\n        \"habitos\".\"frequencia\" = 'DIAS_DA_SEMANA'\n        and \"habitos\".\"vezes_por_semana\" is null\n        and \"habitos\".\"dias_semana\" is not null\n        and cardinality(\"habitos\".\"dias_semana\") between 1 and 7\n        and \"habitos\".\"dias_semana\" <@ ARRAY[0, 1, 2, 3, 4, 5, 6]\n      ) or (\n        \"habitos\".\"frequencia\" = 'VEZES_POR_SEMANA'\n        and \"habitos\".\"dias_semana\" is null\n        and \"habitos\".\"vezes_por_semana\" is not null\n        and \"habitos\".\"vezes_por_semana\" between 1 and 7\n      )"
+        },
+        "habitos_frequencia_valida": {
+          "name": "habitos_frequencia_valida",
+          "value": "\"habitos\".\"frequencia\" in ('DIARIA', 'DIAS_DA_SEMANA', 'VEZES_POR_SEMANA')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.lembretes": {
+      "name": "lembretes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "titulo": {
+          "name": "titulo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agendado_para": {
+          "name": "agendado_para",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "serie_id": {
+          "name": "serie_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recorrencia_frequencia": {
+          "name": "recorrencia_frequencia",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recorrencia_hora": {
+          "name": "recorrencia_hora",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recorrencia_minuto": {
+          "name": "recorrencia_minuto",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recorrencia_dias_semana": {
+          "name": "recorrencia_dias_semana",
+          "type": "integer[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recorrencia_dia_mes": {
+          "name": "recorrencia_dia_mes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "lembretes_pendentes_idx": {
+          "name": "lembretes_pendentes_idx",
+          "columns": [
+            {
+              "expression": "agendado_para",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"lembretes\".\"status\" = 'PENDENTE'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "lembretes_serie_idx": {
+          "name": "lembretes_serie_idx",
+          "columns": [
+            {
+              "expression": "serie_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "lembretes_serie_ocorrencia_unica": {
+          "name": "lembretes_serie_ocorrencia_unica",
+          "columns": [
+            {
+              "expression": "serie_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "agendado_para",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"lembretes\".\"serie_id\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "lembretes_recorrencia_coerente": {
+          "name": "lembretes_recorrencia_coerente",
+          "value": "(\n        \"lembretes\".\"recorrencia_frequencia\" is null\n        and \"lembretes\".\"serie_id\" is null\n        and \"lembretes\".\"recorrencia_hora\" is null\n        and \"lembretes\".\"recorrencia_minuto\" is null\n        and \"lembretes\".\"recorrencia_dias_semana\" is null\n        and \"lembretes\".\"recorrencia_dia_mes\" is null\n      ) or (\n        \"lembretes\".\"recorrencia_frequencia\" in ('DIARIA', 'SEMANAL', 'MENSAL')\n        and \"lembretes\".\"serie_id\" is not null\n        and \"lembretes\".\"recorrencia_hora\" between 0 and 23\n        and \"lembretes\".\"recorrencia_minuto\" between 0 and 59\n        and (\n          (\n            \"lembretes\".\"recorrencia_frequencia\" = 'DIARIA'\n            and \"lembretes\".\"recorrencia_dias_semana\" is null\n            and \"lembretes\".\"recorrencia_dia_mes\" is null\n          ) or (\n            \"lembretes\".\"recorrencia_frequencia\" = 'SEMANAL'\n            and \"lembretes\".\"recorrencia_dia_mes\" is null\n            and array_length(\"lembretes\".\"recorrencia_dias_semana\", 1) between 1 and 7\n            and \"lembretes\".\"recorrencia_dias_semana\" <@ ARRAY[0, 1, 2, 3, 4, 5, 6]\n          ) or (\n            \"lembretes\".\"recorrencia_frequencia\" = 'MENSAL'\n            and \"lembretes\".\"recorrencia_dias_semana\" is null\n            and \"lembretes\".\"recorrencia_dia_mes\" between 1 and 31\n          )\n        )\n      )"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.registros_habito": {
+      "name": "registros_habito",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "habito_id": {
+          "name": "habito_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dia": {
+          "name": "dia",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "situacao": {
+          "name": "situacao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "observacao": {
+          "name": "observacao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pensamento": {
+          "name": "pensamento",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "registrado_em": {
+          "name": "registrado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "atualizado_em": {
+          "name": "atualizado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "registros_habito_dia_unico": {
+          "name": "registros_habito_dia_unico",
+          "columns": [
+            {
+              "expression": "habito_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "dia",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "registros_habito_dia_idx": {
+          "name": "registros_habito_dia_idx",
+          "columns": [
+            {
+              "expression": "dia",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "registros_habito_habito_id_habitos_id_fk": {
+          "name": "registros_habito_habito_id_habitos_id_fk",
+          "tableFrom": "registros_habito",
+          "tableTo": "habitos",
+          "columnsFrom": [
+            "habito_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "registros_habito_situacao_valida": {
+          "name": "registros_habito_situacao_valida",
+          "value": "\"registros_habito\".\"situacao\" in ('FEITO', 'QUEBRADO')"
+        },
+        "registros_habito_texto_nao_vazio": {
+          "name": "registros_habito_texto_nao_vazio",
+          "value": "(\"registros_habito\".\"observacao\" is null or btrim(\"registros_habito\".\"observacao\") <> '')\n        and (\"registros_habito\".\"pensamento\" is null or btrim(\"registros_habito\".\"pensamento\") <> '')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.servicos": {
+      "name": "servicos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "negocio": {
+          "name": "negocio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "descricao": {
+          "name": "descricao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cliente": {
+          "name": "cliente",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "valor_recebido_centavos": {
+          "name": "valor_recebido_centavos",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recebido_em": {
+          "name": "recebido_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "observacao": {
+          "name": "observacao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "atualizado_em": {
+          "name": "atualizado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "servicos_negocio_recebido_em_idx": {
+          "name": "servicos_negocio_recebido_em_idx",
+          "columns": [
+            {
+              "expression": "negocio",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "recebido_em",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "servicos_negocio_valido": {
+          "name": "servicos_negocio_valido",
+          "value": "\"servicos\".\"negocio\" in ('FABIOJUNIORDECOR', 'VENTURAX')"
+        },
+        "servicos_valor_nao_negativo": {
+          "name": "servicos_valor_nao_negativo",
+          "value": "\"servicos\".\"valor_recebido_centavos\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

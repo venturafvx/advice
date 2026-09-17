@@ -5,12 +5,14 @@ import { Compra, type DadosDaCompra } from "./Compra";
 import { CustoOperacional } from "./CustoOperacional";
 import { Dinheiro } from "./Dinheiro";
 import { ModoDeCusto } from "./ModoDeCusto";
+import { Negocio } from "./Negocio";
 
 const AGORA = new Date("2026-09-13T12:00:00Z");
 const CATEGORIA = CategoriaDeCustoId.de("11111111-1111-4111-8111-111111111111");
 
 function dados(sobrescrever: Partial<DadosDaCompra> = {}): DadosDaCompra {
   return {
+    negocio: Negocio.VENTURAX,
     descricao: "Caixa de 10 luminárias",
     quantidade: 10,
     custoUnitario: Dinheiro.deCentavos(2_000),
@@ -37,6 +39,18 @@ describe("Compra", () => {
 
     expect(compra.getDados().descricao).toBe("Lote A");
     expect(compra.getDados().observacao).toBeNull();
+  });
+
+  it("guarda o negócio a que pertence", () => {
+    expect(Compra.criar(dados(), AGORA).getDados().negocio).toBe(Negocio.VENTURAX);
+    expect(Compra.criar(dados({ negocio: Negocio.FABIOJUNIORDECOR }), AGORA).getDados().negocio).toBe(
+      Negocio.FABIOJUNIORDECOR,
+    );
+  });
+
+  it("rejeita negócio desconhecido — inclusive vindo do banco por restauração", () => {
+    const invalido = { negocio: "OUTRA_EMPRESA" as unknown as DadosDaCompra["negocio"] };
+    expect(() => Compra.criar(dados(invalido), AGORA)).toThrow(DomainError);
   });
 
   it("rejeita descrição vazia", () => {

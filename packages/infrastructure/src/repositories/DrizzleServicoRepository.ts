@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gte, inArray, lte, type SQL } from "drizzle-orm";
 import { Dinheiro, Servico, ServicoId } from "@advice/domain";
-import type { CustoOperacional, FiltroPeriodo, ServicoRepository } from "@advice/domain";
+import type { CustoOperacional, FiltroOperacao, Negocio, ServicoRepository } from "@advice/domain";
 import { getDb } from "../db/client";
 import { categoriasCustoTable, custosServicoTable, servicosTable } from "../db/schema";
 import { agruparPorDono, custoParaLinha } from "./custos";
@@ -13,6 +13,7 @@ export class DrizzleServicoRepository implements ServicoRepository {
     const id = servico.getId().toString();
     const linha = {
       id,
+      negocio: dados.negocio,
       descricao: dados.descricao,
       cliente: dados.cliente,
       valorRecebidoCentavos: dados.valorRecebido.emCentavos(),
@@ -29,6 +30,7 @@ export class DrizzleServicoRepository implements ServicoRepository {
         .onConflictDoUpdate({
           target: servicosTable.id,
           set: {
+            negocio: linha.negocio,
             descricao: linha.descricao,
             cliente: linha.cliente,
             valorRecebidoCentavos: linha.valorRecebidoCentavos,
@@ -56,8 +58,11 @@ export class DrizzleServicoRepository implements ServicoRepository {
     return paraDominio(linha, custos.get(linha.id) ?? []);
   }
 
-  async listar(filtro?: FiltroPeriodo): Promise<Servico[]> {
+  async listar(filtro?: FiltroOperacao): Promise<Servico[]> {
     const condicoes: SQL[] = [];
+    if (filtro?.negocio) {
+      condicoes.push(eq(servicosTable.negocio, filtro.negocio));
+    }
     if (filtro?.de) {
       condicoes.push(gte(servicosTable.recebidoEm, filtro.de));
     }
@@ -106,6 +111,7 @@ export class DrizzleServicoRepository implements ServicoRepository {
 function paraDominio(linha: LinhaServico, custos: CustoOperacional[]): Servico {
   return Servico.restaurar({
     id: ServicoId.de(linha.id),
+    negocio: linha.negocio as Negocio,
     descricao: linha.descricao,
     cliente: linha.cliente,
     valorRecebido: Dinheiro.deCentavos(linha.valorRecebidoCentavos),

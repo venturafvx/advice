@@ -1,5 +1,5 @@
 import { ServicoId } from "@advice/domain";
-import type { FiltroPeriodo, ServicoRepository } from "@advice/domain";
+import type { FiltroOperacao, ServicoRepository } from "@advice/domain";
 import type { ServicoDto } from "./dtos";
 import { servicoParaDto } from "./mapeadores";
 
@@ -9,7 +9,7 @@ export interface ConsultarServicosDeps {
 
 export async function listarServicos(
   deps: ConsultarServicosDeps,
-  filtro?: FiltroPeriodo,
+  filtro?: FiltroOperacao,
 ): Promise<ServicoDto[]> {
   const servicos = await deps.servicoRepository.listar(filtro);
   return servicos.map(servicoParaDto);

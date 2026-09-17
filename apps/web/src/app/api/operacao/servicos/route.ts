@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { listarServicos, registrarServico } from "@advice/application";
 import { categoriaRepository, servicoRepository } from "@/lib/container";
-import { lerFiltroPeriodo, servicoSchema } from "@/lib/operacao-schemas";
+import { lerFiltroOperacao, servicoSchema } from "@/lib/operacao-schemas";
 import { erroDeOperacao, erroDeValidacao } from "@/lib/respostas";
 import { respostaNaoAutenticado, sessaoAtual } from "@/lib/auth/sessaoAtual";
 
@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   if (!(await sessaoAtual())) return respostaNaoAutenticado();
 
-  const servicos = await listarServicos({ servicoRepository }, lerFiltroPeriodo(new URL(request.url)));
+  const servicos = await listarServicos({ servicoRepository }, lerFiltroOperacao(new URL(request.url)));
   return NextResponse.json({ servicos });
 }
 

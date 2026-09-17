@@ -6,20 +6,24 @@ import Link from "next/link";
 import type { CategoriaDeCustoDto, ServicoDto } from "@advice/application";
 import { calcularResultado } from "@advice/domain";
 import { hojeComoValorDeCampoData, paraValorDeCampoData } from "@/lib/formato";
+import { caminhoDoNegocio, perfilDe, type PerfilDeNegocio } from "@/lib/negocios";
 import { CampoDinheiro } from "./campos";
+import { SeletorDeNegocioDoLancamento } from "./SeletorDeNegocioDoLancamento";
 import { ListaDeCustos, MODOS_DE_SERVICO, novaChave, type LinhaDeCusto } from "./ListaDeCustos";
 import { PainelResultado } from "./PainelResultado";
 
 interface Props {
   categoriasIniciais: CategoriaDeCustoDto[];
+  perfil: PerfilDeNegocio;
   servico?: ServicoDto;
 }
 
-export function EditorDeServico({ categoriasIniciais, servico }: Props) {
+export function EditorDeServico({ categoriasIniciais, perfil, servico }: Props) {
   const router = useRouter();
   const editando = servico !== undefined;
 
   const [categorias, setCategorias] = useState(categoriasIniciais);
+  const [negocio, setNegocio] = useState(servico?.negocio ?? perfil.negocio);
   const [descricao, setDescricao] = useState(servico?.descricao ?? "");
   const [cliente, setCliente] = useState(servico?.cliente ?? "");
   const [recebidoEm, setRecebidoEm] = useState(
@@ -32,6 +36,9 @@ export function EditorDeServico({ categoriasIniciais, servico }: Props) {
   );
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+
+  const destino = caminhoDoNegocio(perfilDe(negocio));
 
   const resultado = useMemo(
     () =>
@@ -60,6 +67,7 @@ export function EditorDeServico({ categoriasIniciais, servico }: Props) {
           method: editando ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            negocio,
             descricao,
             cliente: cliente.trim() || null,
             valorRecebidoCentavos: valorRecebido,
@@ -76,7 +84,7 @@ export function EditorDeServico({ categoriasIniciais, servico }: Props) {
         return;
       }
 
-      router.push("/operacao");
+      router.push(destino);
       router.refresh();
     } finally {
       setSalvando(false);
@@ -84,14 +92,14 @@ export function EditorDeServico({ categoriasIniciais, servico }: Props) {
   }
 
   async function excluir(): Promise<void> {
-    if (!editando || !window.confirm("Excluir este serviço e os custos dele?")) {
-      return;
-    }
+    if (!editando) return;
+
     const resposta = await fetch(`/api/operacao/servicos/${servico.id}`, { method: "DELETE" });
     if (resposta.ok) {
-      router.push("/operacao");
+      router.push(caminhoDoNegocio(perfilDe(servico.negocio)));
       router.refresh();
     } else {
+      setConfirmandoExclusao(false);
       setErro("Não foi possível excluir o serviço");
     }
   }
@@ -99,13 +107,15 @@ export function EditorDeServico({ categoriasIniciais, servico }: Props) {
   return (
     <form className="editor" onSubmit={aoSubmeter}>
       <div className="cartao">
+        <SeletorDeNegocioDoLancamento valor={negocio} aoMudar={setNegocio} />
+
         <div className="campo">
           <label htmlFor="descricao">O serviço</label>
           <input
             id="descricao"
             value={descricao}
             onChange={(evento) => setDescricao(evento.target.value)}
-            placeholder="Ex: Papel de parede — sala, 18 m²"
+            placeholder={perfil.exemploServico}
             maxLength={200}
             required
             autoFocus={!editando}
@@ -166,13 +176,33 @@ export function EditorDeServico({ categoriasIniciais, servico }: Props) {
           <button type="submit" className="botao botao-primario" disabled={salvando}>
             {salvando ? "Salvando…" : editando ? "Salvar alterações" : "Registrar serviço"}
           </button>
-          <Link href="/operacao" className="botao botao-secundario">
+          <Link href={destino} className="botao botao-secundario">
             Cancelar
           </Link>
           {editando ? (
-            <button type="button" className="botao botao-perigo" onClick={() => void excluir()}>
-              Excluir
-            </button>
+            confirmandoExclusao ? (
+              <div className="confirmacao">
+                <span>Apagar o serviço e os custos dele?</span>
+                <button type="button" className="botao botao-perigo compacto" onClick={() => void excluir()}>
+                  Apagar
+                </button>
+                <button
+                  type="button"
+                  className="botao botao-secundario"
+                  onClick={() => setConfirmandoExclusao(false)}
+                >
+                  Não
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="botao botao-perigo"
+                onClick={() => setConfirmandoExclusao(true)}
+              >
+                Excluir
+              </button>
+            )
           ) : null}
         </div>
       </div>

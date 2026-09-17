@@ -1,4 +1,11 @@
-import type { CompraRepository, FiltroPeriodo, ServicoRepository } from "@advice/domain";
+import { NEGOCIOS } from "@advice/domain";
+import type {
+  CompraRepository,
+  FiltroOperacao,
+  FiltroPeriodo,
+  Negocio,
+  ServicoRepository,
+} from "@advice/domain";
 import type { CompraDto, ServicoDto } from "./dtos";
 import { compraParaDto, servicoParaDto } from "./mapeadores";
 
@@ -77,19 +84,59 @@ function somar(linha: LinhaDeResumo, outra: LinhaDeResumo): LinhaDeResumo {
  * criaria uma segunda fonte da verdade para o número mais importante do
  * produto — a hora de mover a agregação para o banco é quando o volume
  * doer, não antes.
+ *
+ * Com `filtro.negocio`, é o painel de um negócio; sem ele, é a soma dos
+ * dois — e só a visão geral pede isso.
  */
 export async function resumirOperacao(
   deps: ResumirOperacaoDeps,
-  filtro?: FiltroPeriodo,
+  filtro?: FiltroOperacao,
 ): Promise<ResumoDaOperacao> {
   const [comprasRaw, servicosRaw] = await Promise.all([
     deps.compraRepository.listar(filtro),
     deps.servicoRepository.listar(filtro),
   ]);
 
-  const compras = comprasRaw.map(compraParaDto);
-  const servicosRegistrados = servicosRaw.map(servicoParaDto);
+  return agregar(comprasRaw.map(compraParaDto), servicosRaw.map(servicoParaDto));
+}
 
+/**
+ * O resumo de cada negócio no mesmo período, numa ida só ao banco.
+ *
+ * Chamar `resumirOperacao` uma vez por negócio seria mais simples de
+ * ler e dobraria as consultas a cada carga da visão geral; como a
+ * agregação já é uma função pura sobre listas, particionar em memória
+ * custa nada e mantém um único caminho de cálculo.
+ */
+export async function resumirPorNegocio(
+  deps: ResumirOperacaoDeps,
+  filtro?: FiltroPeriodo,
+): Promise<Record<Negocio, ResumoDaOperacao>> {
+  const [comprasRaw, servicosRaw] = await Promise.all([
+    deps.compraRepository.listar(filtro),
+    deps.servicoRepository.listar(filtro),
+  ]);
+
+  const compras = comprasRaw.map(compraParaDto);
+  const servicos = servicosRaw.map(servicoParaDto);
+
+  return Object.fromEntries(
+    NEGOCIOS.map((negocio) => [
+      negocio,
+      agregar(
+        compras.filter((compra) => compra.negocio === negocio),
+        servicos.filter((servico) => servico.negocio === negocio),
+      ),
+    ]),
+  ) as Record<Negocio, ResumoDaOperacao>;
+}
+
+/**
+ * A agregação propriamente dita — pura, sobre listas já mapeadas. É o
+ * ponto que garante que o painel de um negócio e a visão geral contem a
+ * mesma história: uma função só, dois chamadores.
+ */
+function agregar(compras: CompraDto[], servicosRegistrados: ServicoDto[]): ResumoDaOperacao {
   const custosPorRotulo = new Map<string, number>();
   const acumular = (rotulo: string, centavos: number): void => {
     custosPorRotulo.set(rotulo, (custosPorRotulo.get(rotulo) ?? 0) + centavos);

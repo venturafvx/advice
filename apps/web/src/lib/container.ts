@@ -2,7 +2,9 @@ import {
   DrizzleCategoriaDeCustoRepository,
   DrizzleCompraRepository,
   DrizzleEnvioRepository,
+  DrizzleHabitoRepository,
   DrizzleLembreteRepository,
+  DrizzleRegistroDeHabitoRepository,
   DrizzleServicoRepository,
   EvolutionApiNotificador,
 } from "@advice/infrastructure";
@@ -19,3 +21,6 @@ export const notificador = new EvolutionApiNotificador();
 export const compraRepository = new DrizzleCompraRepository();
 export const servicoRepository = new DrizzleServicoRepository();
 export const categoriaRepository = new DrizzleCategoriaDeCustoRepository();
+
+export const habitoRepository = new DrizzleHabitoRepository();
+export const registroRepository = new DrizzleRegistroDeHabitoRepository();

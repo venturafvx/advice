@@ -1,5 +1,5 @@
 import { CompraId } from "@advice/domain";
-import type { CompraRepository, FiltroPeriodo } from "@advice/domain";
+import type { CompraRepository, FiltroOperacao } from "@advice/domain";
 import type { CompraDto } from "./dtos";
 import { compraParaDto } from "./mapeadores";
 
@@ -9,7 +9,7 @@ export interface ConsultarComprasDeps {
 
 export async function listarCompras(
   deps: ConsultarComprasDeps,
-  filtro?: FiltroPeriodo,
+  filtro?: FiltroOperacao,
 ): Promise<CompraDto[]> {
   const compras = await deps.compraRepository.listar(filtro);
   return compras.map(compraParaDto);

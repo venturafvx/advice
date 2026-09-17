@@ -26,7 +26,8 @@ async function tick(): Promise<void> {
   if (resultado.processados > 0) {
     console.log(
       `[scheduler] processados=${resultado.processados} enviados=${resultado.enviados} ` +
-        `falharam_definitivamente=${resultado.falharamDefinitivamente} tentativas_com_falha=${resultado.tentativasComFalha}`,
+        `falharam_definitivamente=${resultado.falharamDefinitivamente} tentativas_com_falha=${resultado.tentativasComFalha} ` +
+        `proximas_agendadas=${resultado.proximasAgendadas}`,
     );
   }
 }

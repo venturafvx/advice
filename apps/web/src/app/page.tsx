@@ -1,4 +1,4 @@
-import { listarLembretes } from "@advice/application";
+import { listarHistorico, listarPendentes } from "@advice/application";
 import { lembreteRepository } from "@/lib/container";
 import { PainelLembretes } from "@/components/PainelLembretes";
 import { exigirSessao } from "@/lib/auth/sessaoAtual";
@@ -10,17 +10,28 @@ export default async function Home() {
   // que realmente autoriza: ela sobrevive a um matcher mal editado.
   await exigirSessao();
 
-  const lembretes = await listarLembretes({ lembreteRepository });
-  const lembretesSerializados = lembretes.map((l) => ({ ...l, agendadoPara: l.agendadoPara.toISOString() }));
+  // Pendentes e histórico vêm de consultas distintas porque crescem de
+  // formas distintas: a fila de pendentes tem o tamanho da agenda, o
+  // histórico cresce um registro por disparo, para sempre.
+  const [pendentes, historico] = await Promise.all([
+    listarPendentes({ lembreteRepository }),
+    listarHistorico({ lembreteRepository }),
+  ]);
+
+  const serializar = (lembretes: Awaited<ReturnType<typeof listarPendentes>>) =>
+    lembretes.map((l) => ({ ...l, agendadoPara: l.agendadoPara.toISOString() }));
 
   return (
     <main>
       <header className="cabecalho">
         <p className="selo">Sophia · WhatsApp</p>
         <h1>Seus lembretes</h1>
-        <p>Agende um aviso e receba no WhatsApp na hora certa.</p>
+        <p>Agende um aviso — uma vez ou toda semana — e receba no WhatsApp na hora certa.</p>
       </header>
-      <PainelLembretes lembretesIniciais={lembretesSerializados} />
+      <PainelLembretes
+        pendentesIniciais={serializar(pendentes)}
+        historicoInicial={serializar(historico)}
+      />
     </main>
   );
 }

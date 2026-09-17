@@ -4,6 +4,9 @@ import {
   CategoriaDeCustoDuplicadaError,
   CategoriaDeCustoNaoEncontradaError,
   CompraNaoEncontradaError,
+  DiaNoFuturoError,
+  HabitoDuplicadoError,
+  HabitoNaoEncontradoError,
   ServicoNaoEncontradoError,
 } from "@advice/application";
 import { DomainError } from "@advice/domain";
@@ -24,12 +27,18 @@ export function erroDeOperacao(erro: unknown, contexto: string): NextResponse {
   if (
     erro instanceof CompraNaoEncontradaError ||
     erro instanceof ServicoNaoEncontradoError ||
-    erro instanceof CategoriaDeCustoNaoEncontradaError
+    erro instanceof CategoriaDeCustoNaoEncontradaError ||
+    erro instanceof HabitoNaoEncontradoError
   ) {
     return NextResponse.json({ erro: erro.message }, { status: 404 });
   }
-  if (erro instanceof CategoriaDeCustoDuplicadaError) {
+  if (erro instanceof CategoriaDeCustoDuplicadaError || erro instanceof HabitoDuplicadoError) {
     return NextResponse.json({ erro: erro.message }, { status: 409 });
+  }
+  // Registrar o futuro não é conflito nem erro de servidor: é um corpo
+  // que descreve algo que ainda não aconteceu.
+  if (erro instanceof DiaNoFuturoError) {
+    return NextResponse.json({ erro: erro.message }, { status: 422 });
   }
   if (erro instanceof DomainError) {
     return NextResponse.json({ erro: erro.message }, { status: 422 });

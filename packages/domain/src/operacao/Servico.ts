@@ -2,6 +2,7 @@ import { DomainError } from "../erros/DomainError";
 import { CustoOperacional } from "./CustoOperacional";
 import { Dinheiro } from "./Dinheiro";
 import { ModoDeCusto } from "./ModoDeCusto";
+import { ehNegocio, type Negocio } from "./Negocio";
 import { ServicoId } from "./ServicoId";
 import { calcularResultado, type ResultadoFinanceiro } from "./ResultadoFinanceiro";
 
@@ -11,6 +12,7 @@ const OBSERVACAO_MAX_LENGTH = 2_000;
 const CUSTOS_MAX = 30;
 
 export interface DadosDoServico {
+  negocio: Negocio;
   descricao: string;
   cliente: string | null;
   valorRecebido: Dinheiro;
@@ -96,6 +98,10 @@ export class Servico {
   }
 
   private static validar(dados: DadosDoServico): DadosDoServico {
+    if (!ehNegocio(dados.negocio)) {
+      throw new DomainError("Escolha a qual negócio este serviço pertence");
+    }
+
     const descricao = dados.descricao.trim();
     if (descricao.length === 0) {
       throw new DomainError("Descreva o serviço prestado");

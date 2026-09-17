@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gte, inArray, lte, type SQL } from "drizzle-orm";
 import { Compra, CompraId, Dinheiro } from "@advice/domain";
-import type { CompraRepository, CustoOperacional, FiltroPeriodo } from "@advice/domain";
+import type { CompraRepository, CustoOperacional, FiltroOperacao, Negocio } from "@advice/domain";
 import { getDb } from "../db/client";
 import { categoriasCustoTable, comprasTable, custosCompraTable } from "../db/schema";
 import { agruparPorDono, custoParaLinha } from "./custos";
@@ -23,6 +23,7 @@ export class DrizzleCompraRepository implements CompraRepository {
     const id = compra.getId().toString();
     const linha = {
       id,
+      negocio: dados.negocio,
       descricao: dados.descricao,
       quantidade: dados.quantidade,
       custoUnitarioCentavos: dados.custoUnitario.emCentavos(),
@@ -40,6 +41,7 @@ export class DrizzleCompraRepository implements CompraRepository {
         .onConflictDoUpdate({
           target: comprasTable.id,
           set: {
+            negocio: linha.negocio,
             descricao: linha.descricao,
             quantidade: linha.quantidade,
             custoUnitarioCentavos: linha.custoUnitarioCentavos,
@@ -68,8 +70,11 @@ export class DrizzleCompraRepository implements CompraRepository {
     return paraDominio(linha, custos.get(linha.id) ?? []);
   }
 
-  async listar(filtro?: FiltroPeriodo): Promise<Compra[]> {
+  async listar(filtro?: FiltroOperacao): Promise<Compra[]> {
     const condicoes: SQL[] = [];
+    if (filtro?.negocio) {
+      condicoes.push(eq(comprasTable.negocio, filtro.negocio));
+    }
     if (filtro?.de) {
       condicoes.push(gte(comprasTable.compradoEm, filtro.de));
     }
@@ -120,6 +125,9 @@ export class DrizzleCompraRepository implements CompraRepository {
 function paraDominio(linha: LinhaCompra, custos: CustoOperacional[]): Compra {
   return Compra.restaurar({
     id: CompraId.de(linha.id),
+    // O CHECK do banco garante o conjunto; o aggregate revalida ao
+    // restaurar, então um valor estranho para no domínio, não aqui.
+    negocio: linha.negocio as Negocio,
     descricao: linha.descricao,
     quantidade: linha.quantidade,
     custoUnitario: Dinheiro.deCentavos(linha.custoUnitarioCentavos),

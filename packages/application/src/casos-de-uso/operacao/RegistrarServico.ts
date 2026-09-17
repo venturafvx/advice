@@ -1,11 +1,12 @@
 import { Dinheiro, Servico, ServicoId } from "@advice/domain";
-import type { CategoriaDeCustoRepository, ServicoRepository } from "@advice/domain";
+import type { CategoriaDeCustoRepository, Negocio, ServicoRepository } from "@advice/domain";
 import type { CustoEntrada, ServicoDto } from "./dtos";
 import { ServicoNaoEncontradoError } from "./erros";
 import { servicoParaDto } from "./mapeadores";
 import { montarCustos } from "./montarCustos";
 
 export interface ServicoInput {
+  negocio: Negocio;
   descricao: string;
   cliente: string | null;
   valorRecebidoCentavos: number;
@@ -21,6 +22,7 @@ export interface ServicoDeps {
 
 export async function registrarServico(input: ServicoInput, deps: ServicoDeps): Promise<ServicoDto> {
   const servico = Servico.criar({
+    negocio: input.negocio,
     descricao: input.descricao,
     cliente: input.cliente,
     valorRecebido: Dinheiro.deCentavos(input.valorRecebidoCentavos),
@@ -44,6 +46,7 @@ export async function atualizarServico(
   }
 
   servico.atualizar({
+    negocio: input.negocio,
     descricao: input.descricao,
     cliente: input.cliente,
     valorRecebido: Dinheiro.deCentavos(input.valorRecebidoCentavos),

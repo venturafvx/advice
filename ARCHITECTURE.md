@@ -43,8 +43,9 @@ advice/
 
 Dentro de `domain` há dois bounded contexts independentes —
 `lembrete/`+`envio/` (avisos por WhatsApp) e `operacao/` (compras,
-custos e margem da Venturax). Não compartilham aggregate, tabela nem
-regra; ver [`docs/DOMAIN.md`](docs/DOMAIN.md).
+custos e margem dos dois negócios do fundador — Fabio Junior Decor e
+Venturax, separados pelo value object `Negocio`). Não compartilham
+aggregate, tabela nem regra; ver [`docs/DOMAIN.md`](docs/DOMAIN.md).
 
 `domain` não importa nada de `application`, `infrastructure` ou dos apps.
 `application` só conhece as interfaces (`ports`) exportadas por `domain`,

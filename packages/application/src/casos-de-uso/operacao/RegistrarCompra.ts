@@ -1,11 +1,12 @@
 import { Compra, CompraId, Dinheiro } from "@advice/domain";
-import type { CategoriaDeCustoRepository, CompraRepository } from "@advice/domain";
+import type { CategoriaDeCustoRepository, CompraRepository, Negocio } from "@advice/domain";
 import type { CompraDto, CustoEntrada } from "./dtos";
 import { CompraNaoEncontradaError } from "./erros";
 import { compraParaDto } from "./mapeadores";
 import { montarCustos } from "./montarCustos";
 
 export interface CompraInput {
+  negocio: Negocio;
   descricao: string;
   quantidade: number;
   custoUnitarioCentavos: number;
@@ -22,6 +23,7 @@ export interface CompraDeps {
 
 export async function registrarCompra(input: CompraInput, deps: CompraDeps): Promise<CompraDto> {
   const compra = Compra.criar({
+    negocio: input.negocio,
     descricao: input.descricao,
     quantidade: input.quantidade,
     custoUnitario: Dinheiro.deCentavos(input.custoUnitarioCentavos),
@@ -42,6 +44,7 @@ export async function atualizarCompra(id: string, input: CompraInput, deps: Comp
   }
 
   compra.atualizar({
+    negocio: input.negocio,
     descricao: input.descricao,
     quantidade: input.quantidade,
     custoUnitario: Dinheiro.deCentavos(input.custoUnitarioCentavos),

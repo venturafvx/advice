@@ -8,7 +8,7 @@ import { exigirSessao } from "@/lib/auth/sessaoAtual";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Tipos de custo · Venturax",
+  title: "Tipos de custo · Operação",
 };
 
 export default async function CategoriasPage() {
@@ -24,8 +24,10 @@ export default async function CategoriasPage() {
         </p>
         <h1>Tipos de custo</h1>
         <p>
-          Os custos que incidem na sua operação. Cada um guarda como costuma incidir — fixo, por unidade ou
-          percentual da venda — e já chega preenchido no formulário.
+          Os custos que incidem nas suas operações. Cada um guarda como costuma incidir — fixo, por unidade
+          ou percentual da venda — e já chega preenchido no formulário. A lista é <strong>compartilhada
+          pelos dois negócios</strong>: &quot;Frete&quot; é frete nos dois, e é o que permite comparar para
+          onde o custo vai em cada um.
         </p>
       </header>
 

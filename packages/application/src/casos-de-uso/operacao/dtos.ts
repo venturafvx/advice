@@ -1,4 +1,4 @@
-import type { ModoDeCusto, ResultadoFinanceiro } from "@advice/domain";
+import type { ModoDeCusto, Negocio, ResultadoFinanceiro } from "@advice/domain";
 
 /**
  * DTOs do contexto de Operação.
@@ -20,6 +20,7 @@ export interface CustoDto {
 
 export interface CompraDto {
   id: string;
+  negocio: Negocio;
   descricao: string;
   quantidade: number;
   custoUnitarioCentavos: number;
@@ -32,6 +33,7 @@ export interface CompraDto {
 
 export interface ServicoDto {
   id: string;
+  negocio: Negocio;
   descricao: string;
   cliente: string | null;
   valorRecebidoCentavos: number;

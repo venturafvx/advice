@@ -7,8 +7,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const fraunces = Fraunces({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-fraunces" });
 
 export const metadata: Metadata = {
-  title: "Venturax",
-  description: "Lembretes por WhatsApp e gestão da operação Venturax",
+  title: "Advice",
+  description: "Lembretes por WhatsApp e a operação dos dois negócios",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

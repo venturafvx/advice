@@ -5,10 +5,28 @@ export type {
   CriarLembreteResultado,
 } from "./casos-de-uso/CriarLembrete";
 
-export { cancelarLembrete, LembreteNaoEncontradoError } from "./casos-de-uso/CancelarLembrete";
+export { cancelarLembrete } from "./casos-de-uso/CancelarLembrete";
 export type { CancelarLembreteDeps } from "./casos-de-uso/CancelarLembrete";
 
-export { listarLembretes } from "./casos-de-uso/ListarLembretes";
+export { editarLembrete } from "./casos-de-uso/EditarLembrete";
+export type {
+  EditarLembreteInput,
+  EditarLembreteDeps,
+  EditarLembreteResultado,
+} from "./casos-de-uso/EditarLembrete";
+
+export { excluirLembrete, limparHistorico } from "./casos-de-uso/ExcluirLembrete";
+export type { ExcluirLembreteDeps } from "./casos-de-uso/ExcluirLembrete";
+
+export { LembreteNaoEncontradoError } from "./casos-de-uso/erros";
+
+export {
+  listarLembretes,
+  listarPendentes,
+  listarHistorico,
+  LIMITE_HISTORICO_PADRAO,
+  LIMITE_HISTORICO_BUSCA,
+} from "./casos-de-uso/ListarLembretes";
 export type { LembreteResumo, ListarLembretesDeps } from "./casos-de-uso/ListarLembretes";
 
 export { processarLembretesPendentes } from "./casos-de-uso/ProcessarLembretesPendentes";
@@ -55,10 +73,35 @@ export type {
   CategoriaDeCustoDeps,
 } from "./casos-de-uso/operacao/GerirCategoriasDeCusto";
 
-export { resumirOperacao } from "./casos-de-uso/operacao/ResumirOperacao";
+export { resumirOperacao, resumirPorNegocio } from "./casos-de-uso/operacao/ResumirOperacao";
 export type {
   ResumoDaOperacao,
   ResumirOperacaoDeps,
   LinhaDeResumo,
   CustoPorCategoria,
 } from "./casos-de-uso/operacao/ResumirOperacao";
+
+export { criarHabito, editarHabito, definirArquivamento, excluirHabito } from "./casos-de-uso/habitos/GerirHabitos";
+export type { HabitoDeps } from "./casos-de-uso/habitos/GerirHabitos";
+
+export { registrarDia, apagarRegistroDoDia, DiaNoFuturoError } from "./casos-de-uso/habitos/RegistrarDia";
+export type { RegistroDeHabitoDeps } from "./casos-de-uso/habitos/RegistrarDia";
+
+export {
+  montarPainelDeHabitos,
+  JANELA_DO_PAINEL_EM_DIAS,
+  LIMITE_DE_QUEBRAS,
+} from "./casos-de-uso/habitos/ConsultarHabitos";
+export type { ConsultarHabitosDeps } from "./casos-de-uso/habitos/ConsultarHabitos";
+
+export { HabitoNaoEncontradoError, HabitoDuplicadoError } from "./casos-de-uso/habitos/erros";
+
+export type {
+  HabitoDto,
+  HabitoInput,
+  PainelDeHabitosDto,
+  QuebraDto,
+  RelatoDoDiaDto,
+  DiaDaSemanaDto,
+  RegistroDoDiaInput,
+} from "./casos-de-uso/habitos/dtos";

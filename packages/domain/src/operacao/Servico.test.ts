@@ -4,6 +4,7 @@ import { CategoriaDeCustoId } from "./CategoriaDeCustoId";
 import { CustoOperacional } from "./CustoOperacional";
 import { Dinheiro } from "./Dinheiro";
 import { ModoDeCusto } from "./ModoDeCusto";
+import { Negocio } from "./Negocio";
 import { Servico, type DadosDoServico } from "./Servico";
 
 const AGORA = new Date("2026-09-13T12:00:00Z");
@@ -11,6 +12,7 @@ const CATEGORIA = CategoriaDeCustoId.de("22222222-2222-4222-8222-222222222222");
 
 function dados(sobrescrever: Partial<DadosDoServico> = {}): DadosDoServico {
   return {
+    negocio: Negocio.FABIOJUNIORDECOR,
     descricao: "Papel de parede — sala, 18m²",
     cliente: "Ana",
     valorRecebido: Dinheiro.deCentavos(350_000),
@@ -29,6 +31,15 @@ describe("Servico", () => {
     expect(resultado.custoMercadoriaCentavos).toBe(0);
     expect(resultado.lucroLiquidoCentavos).toBe(230_000);
     expect(resultado.margemLiquida).toBeCloseTo(230_000 / 350_000, 10);
+  });
+
+  it("guarda o negócio a que pertence", () => {
+    expect(Servico.criar(dados(), AGORA).getDados().negocio).toBe(Negocio.FABIOJUNIORDECOR);
+  });
+
+  it("rejeita negócio desconhecido", () => {
+    const invalido = { negocio: "OUTRA_EMPRESA" as unknown as DadosDoServico["negocio"] };
+    expect(() => Servico.criar(dados(invalido), AGORA)).toThrow(DomainError);
   });
 
   it("rejeita custo por unidade — serviço não tem lote", () => {

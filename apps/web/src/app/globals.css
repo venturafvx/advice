@@ -253,6 +253,142 @@ main {
   background: var(--cor-status);
 }
 
+/* ─── Recorrência ─────────────────────────────────────────────────── */
+
+.campo .rotulo {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Segmentado no lugar de um <select>: as quatro opções cabem na tela e
+   a escolha muda o formulário inteiro — esconder isso atrás de um menu
+   seria esconder a decisão principal do formulário. */
+.segmentado {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.segmentado button {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 9px 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.segmentado button:hover {
+  color: var(--text);
+}
+
+.segmentado button[aria-pressed="true"] {
+  background: #26262c;
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.dias-semana {
+  display: flex;
+  gap: 6px;
+}
+
+.dias-semana button {
+  flex: 1;
+  min-width: 0;
+  appearance: none;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 0;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.dias-semana button:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.dias-semana button[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+/* A promessa do formulário, escrita antes de ele ser enviado: qual é a
+   regra e quando ela dispara pela primeira vez. */
+.previsao {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  background: rgba(242, 184, 75, 0.06);
+  border: 1px solid rgba(242, 184, 75, 0.16);
+  border-radius: 10px;
+}
+
+.previsao svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--accent);
+}
+
+.previsao strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.selo-repeticao {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--accent);
+}
+
+/* No histórico a regra já foi dita na ocorrência pendente — aqui basta
+   a marca de que aquela linha veio de uma repetição. */
+.marca-repeticao {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding-left: 8px;
+  border-left: 1px solid var(--border);
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 420px) {
+  .segmentado {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* ─── Autenticação ───────────────────────────────────────────────── */
 
 .cabecalho__topo {
@@ -1147,7 +1283,9 @@ input[type="number"]:focus {
 .tabela {
   width: 100%;
   border-collapse: collapse;
-  min-width: 560px;
+  /* Sete colunas: abaixo disto as células se espremem e os números
+     deixam de ser legíveis. Acima, a rolagem horizontal cuida. */
+  min-width: 620px;
 }
 
 .tabela th {
@@ -1267,4 +1405,775 @@ input[type="number"]:focus {
 .barra-topo nav a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* ─── Busca, edição e exclusão de lembretes ───────────────────────── */
+
+/**
+ * O campo de busca não é um cartão: é uma linha fina entre o formulário
+ * e as listas, para não competir com a ação principal (agendar) nem
+ * parecer mais um passo do formulário.
+ */
+.campo-busca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 32px 0 0;
+  padding: 0 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.campo-busca:focus-within {
+  border-color: var(--border-strong);
+  color: var(--text-secondary);
+}
+
+.campo-busca svg {
+  flex-shrink: 0;
+}
+
+.campo-busca input {
+  flex: 1;
+  min-width: 0;
+  appearance: none;
+  background: none;
+  border: none;
+  outline: none;
+  padding: 12px 0;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.campo-busca input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* O "x" nativo do type=search não combina com nada aqui — o botão
+   "Limpar" faz o mesmo trabalho e é legível. */
+.campo-busca input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.campo-busca .link-discreto {
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+/* A linha em edição vira o formulário inteiro: sem paddings de item, e
+   sem o cartão interno desenhando uma borda dentro de outra. */
+.item-lembrete.em-edicao {
+  display: block;
+  padding: 8px 0;
+}
+
+.item-lembrete.em-edicao .cartao {
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+.acoes-formulario {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.acoes-formulario .botao-primario {
+  width: auto;
+}
+
+.acoes-formulario .botao-secundario {
+  padding: 11px 18px;
+}
+
+/**
+ * A confirmação ocupa o lugar dos botões da própria linha — quem vai
+ * sumir é aquela linha, e a pergunta tem de acontecer ali, não num
+ * diálogo que tira o contexto da tela.
+ */
+.confirmacao {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.confirmacao span {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.botao-perigo.compacto {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.rodape-lista {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.rodape-lista .link-sutil {
+  margin-top: 0;
+}
+
+@media (max-width: 560px) {
+  .item-lembrete {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .item-lembrete .acoes {
+    justify-content: flex-end;
+  }
+
+  .confirmacao {
+    justify-content: flex-start;
+  }
+}
+
+/* ---------------------------------------------------------------------
+ * Operação: dois negócios
+ * ------------------------------------------------------------------ */
+
+/**
+ * O seletor de negócio. Mesma gramática do filtro de período — pílula
+ * sobre fundo elevado — mas um degrau mais presente: trocar de negócio
+ * troca o significado de todos os números da tela, e o período só os
+ * recorta.
+ */
+.seletor-negocio {
+  display: inline-flex;
+  gap: 2px;
+  padding: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  margin-bottom: 24px;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.seletor-negocio::-webkit-scrollbar {
+  display: none;
+}
+
+.seletor-negocio a {
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.seletor-negocio a:hover {
+  color: var(--text-secondary);
+}
+
+.seletor-negocio a.ativo {
+  background: var(--bg-input);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.seletor-negocio a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* O cartão de cada negócio na visão geral — o cartão inteiro é o link. */
+.cartao-negocio {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.cartao-negocio:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.cartao-negocio:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.cartao-negocio-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.cartao-negocio-topo h2 {
+  margin: 0 0 4px;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.cartao-negocio-topo .sublinha {
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+
+.cartao-negocio-rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+
+.cartao-negocio .seta {
+  color: var(--text-tertiary);
+  transition:
+    transform 0.15s ease,
+    color 0.15s ease;
+}
+
+.cartao-negocio:hover .seta {
+  color: var(--accent);
+  transform: translateX(3px);
+}
+
+/**
+ * Ações de linha — sempre visíveis.
+ *
+ * A primeira versão as escondia até o hover, no gosto de tabela densa.
+ * Estava errado: editar e apagar foram pedidos explicitamente, e ação
+ * que só aparece quando o ponteiro passa por cima não existe para quem
+ * não sabe que ela está lá (e não existe nenhuma em toque).
+ *
+ * A coluna gruda na borda direita porque a tabela rola na horizontal:
+ * sem isso, num monitor estreito ou no celular as ações ficam fora da
+ * tela e só se chega nelas rolando para o lado — que é exatamente o
+ * jeito de não serem encontradas.
+ */
+.coluna-acoes {
+  text-align: right;
+  width: 1%;
+  position: sticky;
+  right: 0;
+  background: var(--bg-elevated);
+}
+
+/* A sombra só aparece quando há algo rolando por baixo. */
+.coluna-acoes::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 16px;
+  transform: translateX(-100%);
+  background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.28));
+  pointer-events: none;
+}
+
+.tabela tbody tr:hover .coluna-acoes {
+  background: #17171b;
+}
+
+.acoes-linha {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.botao-secundario.compacto {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+/* O negócio dentro do formulário: dois botões, não um <select>. */
+.campo-negocio {
+  border: 0;
+  padding: 0;
+  margin: 0 0 4px;
+}
+
+.campo-negocio legend {
+  padding: 0;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+}
+
+.segmentado {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.segmentado label {
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.segmentado label:hover {
+  color: var(--text-secondary);
+}
+
+.segmentado label.ativo {
+  background: var(--bg-input);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+/* O radio real continua existindo — teclado e leitor de tela usam ele. */
+.segmentado input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.segmentado label:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+  .cartao-negocio-topo {
+    flex-direction: column;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Hábitos
+   
+   A tela tem uma hierarquia própria: o ato do dia vem antes do número
+   do mês, e o que foi escrito numa quebra vem em tipografia editorial,
+   não em tabela. É a única parte deste app que fala sobre a pessoa e
+   não sobre um dado — e ela é desenhada como tal.
+   --------------------------------------------------------------------- */
+
+/* O `.segmentado` do formulário de hábito tem 3 (ou 6) opções, não as 4
+   da grade original — e a segunda definição de `.segmentado` no arquivo
+   (a da Operação, em pílula) venceria por ordem. Este bloco é o último,
+   então é ele quem manda aqui. */
+.segmentado.de-habito {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-radius: 10px;
+  background: var(--bg-input);
+  flex-wrap: nowrap;
+}
+
+.segmentado.de-habito.compacto {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.segmentado.de-habito button {
+  border-radius: 7px;
+}
+
+.previsao-habito {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: -4px 0 16px;
+}
+
+/* --- Hoje ---------------------------------------------------------- */
+
+.linha-hoje {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.linha-hoje:last-child {
+  border-bottom: none;
+}
+
+.linha-hoje .conteudo {
+  min-width: 0;
+}
+
+.linha-hoje .titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  margin: 0 0 3px;
+  overflow-wrap: anywhere;
+}
+
+.linha-hoje .sublinha {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.linha-hoje .acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Já declarado: continua visível, mas recua. O que a tela pede agora
+   está acima; isto é confirmação, não tarefa. */
+.linha-hoje.resolvida .titulo {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.marca-situacao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.marca-situacao[data-situacao="feito"] {
+  background: rgba(52, 211, 153, 0.16);
+  color: var(--positivo);
+}
+
+.marca-situacao[data-situacao="quebrado"] {
+  background: rgba(251, 113, 133, 0.14);
+  color: var(--negativo);
+}
+
+/* Verde e não âmbar: o âmbar é a cor da ação principal do app inteiro
+   (agendar, salvar), e "Feito" não compete com ela — confirma. */
+.botao-feito {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.28);
+  color: var(--positivo);
+}
+
+.botao-feito:hover:not(:disabled) {
+  background: rgba(52, 211, 153, 0.2);
+  border-color: rgba(52, 211, 153, 0.45);
+}
+
+/* --- Cartão de hábito ---------------------------------------------- */
+
+.cartao-habito {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+}
+
+.cartao-habito + .cartao-habito {
+  margin-top: 12px;
+}
+
+.cartao-habito.em-edicao {
+  padding: 14px 16px;
+}
+
+.cartao-habito.em-edicao .cartao {
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+.cartao-habito-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.cartao-habito-topo h3 {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 500;
+  font-size: 19px;
+  letter-spacing: -0.01em;
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}
+
+.cartao-habito-topo .sublinha {
+  margin: 0;
+}
+
+.selo-sequencia {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(242, 184, 75, 0.12);
+  border: 1px solid rgba(242, 184, 75, 0.26);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.cartao-habito-numeros {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.cartao-habito-numeros strong {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* A motivação do hábito, na tipografia da citação: é a frase que a
+   pessoa escreveu para si mesma, não um campo de cadastro. */
+.cartao-habito-motivo {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  border-left: 2px solid var(--border-strong);
+  padding-left: 12px;
+  margin: 16px 0 0;
+}
+
+.cartao-habito-acoes {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.cartao-habito-acoes .botao {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* --- A semana em sete quadrados ------------------------------------- */
+
+.faixa-semana {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.dia-semana {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-tertiary);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.dia-semana[data-estado="feito"] {
+  background: rgba(52, 211, 153, 0.16);
+  border-color: rgba(52, 211, 153, 0.32);
+  color: var(--positivo);
+}
+
+.dia-semana[data-estado="quebrado"] {
+  background: rgba(251, 113, 133, 0.14);
+  border-color: rgba(251, 113, 133, 0.3);
+  color: var(--negativo);
+}
+
+/* Cobrado e sem resposta: tracejado, não vermelho. Vermelho é a quebra
+   declarada — silêncio não é a mesma coisa e não recebe a mesma cor. */
+.dia-semana[data-estado="falta"] {
+  border-style: dashed;
+  border-color: var(--border-strong);
+}
+
+.dia-semana[data-estado="livre"] {
+  color: rgba(245, 245, 247, 0.2);
+}
+
+.dia-semana[data-estado="futuro"] {
+  border-color: var(--border);
+  color: rgba(245, 245, 247, 0.26);
+}
+
+.dia-semana[data-hoje] {
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* --- O diário das quebras ------------------------------------------- */
+
+.diario {
+  padding: 8px 24px;
+}
+
+.quebra {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.quebra:last-child {
+  border-bottom: none;
+}
+
+.quebra header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.quebra-habito {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.quebra-dia {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.quebra-fato {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* O pensamento em serifa: é a voz da pessoa, e merece ser lido como
+   texto, não como conteúdo de campo. */
+.quebra-pensamento {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text);
+  border-left: 2px solid var(--accent);
+  padding-left: 14px;
+  margin: 12px 0 0;
+  overflow-wrap: anywhere;
+}
+
+/* --- O momento da quebra -------------------------------------------- */
+
+.registro-quebra {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.registro-quebra:last-child {
+  border-bottom: none;
+}
+
+.registro-quebra-titulo {
+  font-size: 15px;
+  font-weight: 500;
+  margin: 0 0 14px;
+}
+
+.registro-quebra-motivo {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text);
+  background: rgba(242, 184, 75, 0.06);
+  border-left: 2px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 14px 16px;
+  margin: 0 0 18px;
+}
+
+.registro-quebra-motivo span {
+  display: block;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 6px;
+}
+
+@media (max-width: 560px) {
+  .linha-hoje {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .linha-hoje .acoes {
+    justify-content: flex-end;
+  }
+
+  .cartao-habito {
+    padding: 18px 16px;
+  }
+
+  .diario {
+    padding: 8px 16px;
+  }
 }

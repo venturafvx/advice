@@ -1,40 +1,47 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
-import { criarLembrete, listarLembretes } from "@advice/application";
+import { criarLembrete, listarHistorico, listarPendentes } from "@advice/application";
 import { DomainError } from "@advice/domain";
 import { lembreteRepository } from "@/lib/container";
+import { buscaSchema, lembreteSchema, paraInputDeLembrete } from "@/lib/lembrete-schemas";
 import { respostaNaoAutenticado, sessaoAtual } from "@/lib/auth/sessaoAtual";
 
 export const runtime = "nodejs";
 
-const criarLembreteSchema = z.object({
-  titulo: z.string().trim().min(1, "Informe o que você quer lembrar").max(200),
-  agendadoPara: z.iso.datetime({ local: true }),
-});
-
-export async function GET() {
+export async function GET(request: Request) {
   if (!(await sessaoAtual())) return respostaNaoAutenticado();
 
-  const lembretes = await listarLembretes({ lembreteRepository });
-  return NextResponse.json({ lembretes });
+  // Busca inválida (longa demais) não é erro de uso — é dedo pesado.
+  // Ignorar o termo devolve a lista completa, que é o pior que pode
+  // acontecer, em vez de uma tela de erro por causa de uma digitação.
+  const busca = buscaSchema.safeParse(new URL(request.url).searchParams.get("busca") ?? "");
+  const termo = busca.success ? busca.data : undefined;
+
+  const [pendentes, historico] = await Promise.all([
+    listarPendentes({ lembreteRepository }, termo),
+    listarHistorico({ lembreteRepository }, termo),
+  ]);
+
+  return NextResponse.json({ pendentes, historico });
 }
 
 export async function POST(request: Request) {
   if (!(await sessaoAtual())) return respostaNaoAutenticado();
 
   const corpo = await request.json().catch(() => null);
-  const resultado = criarLembreteSchema.safeParse(corpo);
+  const resultado = lembreteSchema.safeParse(corpo);
 
   if (!resultado.success) {
-    return NextResponse.json({ erro: resultado.error.issues[0]?.message ?? "Dados inválidos" }, { status: 400 });
+    return NextResponse.json(
+      { erro: resultado.error.issues[0]?.message ?? "Dados inválidos" },
+      { status: 400 },
+    );
   }
 
   try {
-    const { id } = await criarLembrete(
-      { titulo: resultado.data.titulo, agendadoPara: new Date(resultado.data.agendadoPara) },
-      { lembreteRepository },
-    );
-    return NextResponse.json({ id }, { status: 201 });
+    const { id, agendadoPara } = await criarLembrete(paraInputDeLembrete(resultado.data), {
+      lembreteRepository,
+    });
+    return NextResponse.json({ id, agendadoPara: agendadoPara.toISOString() }, { status: 201 });
   } catch (erro) {
     if (erro instanceof DomainError) {
       return NextResponse.json({ erro: erro.message }, { status: 422 });

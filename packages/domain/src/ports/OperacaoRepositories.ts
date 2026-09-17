@@ -2,6 +2,7 @@ import type { CategoriaDeCusto } from "../operacao/CategoriaDeCusto";
 import type { CategoriaDeCustoId } from "../operacao/CategoriaDeCustoId";
 import type { Compra } from "../operacao/Compra";
 import type { CompraId } from "../operacao/CompraId";
+import type { Negocio } from "../operacao/Negocio";
 import type { Servico } from "../operacao/Servico";
 import type { ServicoId } from "../operacao/ServicoId";
 
@@ -14,17 +15,26 @@ export interface FiltroPeriodo {
   ate?: Date;
 }
 
+/**
+ * O recorte completo de uma listagem de Operação: período mais negócio.
+ * Sem `negocio` a consulta atravessa os dois — é o que a visão geral
+ * usa, e é a única leitura que tem o direito de fazer isso.
+ */
+export interface FiltroOperacao extends FiltroPeriodo {
+  negocio?: Negocio;
+}
+
 export interface CompraRepository {
   salvar(compra: Compra): Promise<void>;
   buscarPorId(id: CompraId): Promise<Compra | null>;
-  listar(filtro?: FiltroPeriodo): Promise<Compra[]>;
+  listar(filtro?: FiltroOperacao): Promise<Compra[]>;
   excluir(id: CompraId): Promise<void>;
 }
 
 export interface ServicoRepository {
   salvar(servico: Servico): Promise<void>;
   buscarPorId(id: ServicoId): Promise<Servico | null>;
-  listar(filtro?: FiltroPeriodo): Promise<Servico[]>;
+  listar(filtro?: FiltroOperacao): Promise<Servico[]>;
   excluir(id: ServicoId): Promise<void>;
 }
 

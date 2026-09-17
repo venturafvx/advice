@@ -6,20 +6,28 @@ import Link from "next/link";
 import type { CategoriaDeCustoDto, CompraDto } from "@advice/application";
 import { calcularResultado } from "@advice/domain";
 import { hojeComoValorDeCampoData, paraValorDeCampoData } from "@/lib/formato";
+import { caminhoDoNegocio, perfilDe, type PerfilDeNegocio } from "@/lib/negocios";
 import { CampoDinheiro, CampoInteiro } from "./campos";
+import { SeletorDeNegocioDoLancamento } from "./SeletorDeNegocioDoLancamento";
 import { ListaDeCustos, MODOS_DE_COMPRA, novaChave, type LinhaDeCusto } from "./ListaDeCustos";
 import { PainelResultado } from "./PainelResultado";
 
 interface Props {
   categoriasIniciais: CategoriaDeCustoDto[];
+  /** O negócio da rota: é ele quem define o padrão e para onde voltar. */
+  perfil: PerfilDeNegocio;
   compra?: CompraDto;
 }
 
-export function EditorDeCompra({ categoriasIniciais, compra }: Props) {
+export function EditorDeCompra({ categoriasIniciais, perfil, compra }: Props) {
   const router = useRouter();
   const editando = compra !== undefined;
 
   const [categorias, setCategorias] = useState(categoriasIniciais);
+  // Editável de propósito: lançar no negócio errado é o engano mais
+  // fácil de cometer aqui, e sem este campo a única saída seria apagar
+  // e redigitar tudo.
+  const [negocio, setNegocio] = useState(compra?.negocio ?? perfil.negocio);
   const [descricao, setDescricao] = useState(compra?.descricao ?? "");
   const [compradoEm, setCompradoEm] = useState(
     compra ? paraValorDeCampoData(compra.compradoEm) : hojeComoValorDeCampoData(),
@@ -33,6 +41,12 @@ export function EditorDeCompra({ categoriasIniciais, compra }: Props) {
   );
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+
+  // Volta para o painel do negócio em que o lançamento **ficou**, não
+  // para o de onde se entrou. Mover uma compra de negócio e cair num
+  // painel onde ela não aparece pareceria que a edição se perdeu.
+  const destino = caminhoDoNegocio(perfilDe(negocio));
 
   /**
    * O simulador ao vivo. Chama exatamente a mesma função do domínio que
@@ -66,6 +80,7 @@ export function EditorDeCompra({ categoriasIniciais, compra }: Props) {
           method: editando ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            negocio,
             descricao,
             quantidade,
             custoUnitarioCentavos: custoUnitario,
@@ -83,7 +98,7 @@ export function EditorDeCompra({ categoriasIniciais, compra }: Props) {
         return;
       }
 
-      router.push("/operacao");
+      router.push(destino);
       router.refresh();
     } finally {
       setSalvando(false);
@@ -91,14 +106,14 @@ export function EditorDeCompra({ categoriasIniciais, compra }: Props) {
   }
 
   async function excluir(): Promise<void> {
-    if (!editando || !window.confirm("Excluir esta compra e todos os custos dela?")) {
-      return;
-    }
+    if (!editando) return;
+
     const resposta = await fetch(`/api/operacao/compras/${compra.id}`, { method: "DELETE" });
     if (resposta.ok) {
-      router.push("/operacao");
+      router.push(caminhoDoNegocio(perfilDe(compra.negocio)));
       router.refresh();
     } else {
+      setConfirmandoExclusao(false);
       setErro("Não foi possível excluir a compra");
     }
   }
@@ -106,13 +121,15 @@ export function EditorDeCompra({ categoriasIniciais, compra }: Props) {
   return (
     <form className="editor" onSubmit={aoSubmeter}>
       <div className="cartao">
+        <SeletorDeNegocioDoLancamento valor={negocio} aoMudar={setNegocio} />
+
         <div className="campo">
           <label htmlFor="descricao">O que você comprou</label>
           <input
             id="descricao"
             value={descricao}
             onChange={(evento) => setDescricao(evento.target.value)}
-            placeholder="Ex: Caixa com 50 luminárias LED"
+            placeholder={perfil.exemploCompra}
             maxLength={200}
             required
             autoFocus={!editando}
@@ -173,13 +190,33 @@ export function EditorDeCompra({ categoriasIniciais, compra }: Props) {
           <button type="submit" className="botao botao-primario" disabled={salvando}>
             {salvando ? "Salvando…" : editando ? "Salvar alterações" : "Registrar compra"}
           </button>
-          <Link href="/operacao" className="botao botao-secundario">
+          <Link href={destino} className="botao botao-secundario">
             Cancelar
           </Link>
           {editando ? (
-            <button type="button" className="botao botao-perigo" onClick={() => void excluir()}>
-              Excluir
-            </button>
+            confirmandoExclusao ? (
+              <div className="confirmacao">
+                <span>Apagar a compra e os custos dela?</span>
+                <button type="button" className="botao botao-perigo compacto" onClick={() => void excluir()}>
+                  Apagar
+                </button>
+                <button
+                  type="button"
+                  className="botao botao-secundario"
+                  onClick={() => setConfirmandoExclusao(false)}
+                >
+                  Não
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="botao botao-perigo"
+                onClick={() => setConfirmandoExclusao(true)}
+              >
+                Excluir
+              </button>
+            )
           ) : null}
         </div>
       </div>

@@ -6,6 +6,7 @@ import { BotaoSair } from "./BotaoSair";
 
 const SECOES = [
   { href: "/", rotulo: "Lembretes" },
+  { href: "/habitos", rotulo: "Hábitos" },
   { href: "/operacao", rotulo: "Operação" },
 ];
 
@@ -22,8 +23,11 @@ export function NavPrincipal() {
   return (
     <header className="barra-topo">
       <div className="barra-topo-conteudo">
+        {/* A marca é a do app, não a de um dos negócios: desde que
+            Operação virou dois, "Venturax" aqui em cima daria a entender
+            que o Fabio Junior Decor mora dentro dela. */}
         <Link href="/" className="marca">
-          Venturax
+          Advice
         </Link>
         <nav aria-label="Seções">
           {SECOES.map((secao) => {
